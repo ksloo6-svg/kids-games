@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff6e5">
+<title>꼬마 게임 모음</title>
+<link rel="icon" type="image/png" href="snowball/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style>
+/* Game shelf: one big tappable card per game, sized for small fingers. Add a new <a class="game"> per game folder. */
+:root{
+  --bg:#fff6e5;
+  --card:#ffffff;
+  --ink:#2b2b45;
+  --muted:#7a7a95;
+  --shadow:0 6px 0 rgba(43,43,69,.12);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+  font-family:'Jua',system-ui,sans-serif;
+  padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);
+}
+h1{margin:8px 0 24px;text-align:center;font-size:clamp(32px,9vw,48px);font-weight:400}
+.shelf{display:grid;gap:18px;max-width:720px;margin:0 auto;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.game{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:var(--card);border-radius:28px;padding:18px 12px 16px;
+  text-decoration:none;color:inherit;box-shadow:var(--shadow);
+  transition:transform .1s;-webkit-tap-highlight-color:transparent;
+}
+.game:active{transform:translateY(4px) scale(.97);box-shadow:0 2px 0 rgba(43,43,69,.12)}
+.game img{width:100%;max-width:140px;aspect-ratio:1;border-radius:24%}
+.game span{font-size:22px;text-align:center}
+.soon{opacity:.45;pointer-events:none}
+.soon .ph{width:100%;max-width:140px;aspect-ratio:1;border-radius:24%;background:#eee6d6;display:grid;place-items:center;font-size:56px}
+</style>
+</head>
+<body>
+<h1>꼬마 게임 모음</h1>
+<main class="shelf">
+  <a class="game" href="snowball/">
+    <img src="snowball/icon-192.png" alt="">
+    <span>눈굴리기 대작전</span>
+  </a>
+  <div class="game soon" aria-hidden="true">
+    <div class="ph">?</div>
+    <span>곧 나와요</span>
+  </div>
+</main>
+</body>
+</html>
