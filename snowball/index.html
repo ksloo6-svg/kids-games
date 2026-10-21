@@ -91,7 +91,14 @@ button:disabled{cursor:default}
 .skins .skin{background:#ffffff;color:var(--ink);border:2px solid var(--shade);border-radius:14px;padding:6px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:none;font-family:var(--body);font-size:15px}
 .skins .skin:active{transform:none}
 .skins .skin canvas{width:64px;height:64px}
-.skins .skin.sel{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
+.skins .skin{position:relative}
+.skins .skin.sel{border-color:var(--green);box-shadow:0 0 0 2px var(--green)}
+.skins .tick{position:absolute;top:-9px;right:-9px;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;font-size:17px;display:grid;place-items:center;border:2px solid #fff}
+.skins .more{border-style:dashed;color:var(--muted);justify-content:center;font-size:14px;line-height:1.3}
+.skins .more .plus{font-family:var(--display);font-size:34px;line-height:1;color:var(--blue)}
+.card p.step{align-self:flex-start;margin:4px 0 -6px;font-family:var(--display);font-size:18px;color:var(--ink)}
+.card p.toast{background:#fff4d1;color:var(--ink);border-radius:12px;padding:8px 14px;font-size:17px}
+#buyBtn{display:inline-flex;align-items:center;gap:8px}
 .skins .skin.locked canvas{filter:grayscale(1);opacity:.5}
 .skins .price{display:inline-flex;gap:4px;align-items:center;font-size:13px;color:var(--muted)}
 .skins .price .coin{width:12px;height:12px}
@@ -538,9 +545,9 @@ function menu(){
     grid+=`<button type="button" data-s="${s}" class="${done?'cleared':''}${s===picked?' sel':''}" ${open?'':'disabled'} aria-pressed="${s===picked}" aria-label="스테이지 ${s}">${s}</button>`;
   }
   grid+=`</div><p class="best">지금까지 열린 스테이지: ${unlocked}</p><button type="button" class="startbtn" id="goBtn">START</button>
-  <div class="mybar"><span class="coins"><i class="coin"></i>${coins}</span><button type="button" class="ghost small" id="skinBtn">캐릭터 꾸미기</button></div>`;
+  <div class="mybar"><span class="coins"><i class="coin"></i>${coins}</span><button type="button" class="ghost small" id="skinBtn">내 캐릭터</button><button type="button" class="ghost small" id="shopBtn">상점</button></div>`;
   const hero=`<button type="button" class="helpbtn" id="helpBtn" aria-label="게임 방법">?</button>
-  <button type="button" class="herobtn" id="heroBtn" aria-label="캐릭터 꾸미기"><canvas class="hero" id="myHero"></canvas><span class="heroname">${esc(myName)}</span></button>`;
+  <button type="button" class="herobtn" id="heroBtn" aria-label="내 캐릭터"><canvas class="hero" id="myHero"></canvas><span class="heroname">${esc(myName)}</span></button>`;
   card.innerHTML=MENU_HTML+hero+grid;
   card.querySelectorAll('.stages button').forEach(b=>b.addEventListener('click',()=>{
     picked=+b.dataset.s;
@@ -549,41 +556,62 @@ function menu(){
   document.getElementById('prevPg').addEventListener('click',()=>{page=Math.max(0,page-1);menu();});
   document.getElementById('nextPg').addEventListener('click',()=>{page=Math.min(maxPage,page+1);menu();});
   document.getElementById('goBtn').addEventListener('click',()=>start(picked));
-  document.getElementById('skinBtn').addEventListener('click',()=>skinShop(mySkin));
-  document.getElementById('heroBtn').addEventListener('click',()=>skinShop(mySkin));
+  document.getElementById('skinBtn').addEventListener('click',()=>myChar());
+  document.getElementById('heroBtn').addEventListener('click',()=>myChar());
+  document.getElementById('shopBtn').addEventListener('click',()=>shop(null,menu));
   document.getElementById('helpBtn').addEventListener('click',()=>{help.hidden=false;});
   drawPreview(document.getElementById('myHero'),mySkin,myColor);
   overlay.hidden=false;
 }
 
-function skinShop(view){
+// my character: name, colour and owned characters; every tap applies straight away
+function myChar(msg){
   state='ready';
-  const sk=SKINS.find(k=>k.id===view)||SKINS[0];
-  const have=owned.includes(sk.id),using=mySkin===sk.id;
-  let action;
-  if(using)action=`<button type="button" class="ghost" disabled>사용 중</button>`;
-  else if(have)action=`<button type="button" id="useBtn">이 캐릭터로 하기</button>`;
-  else if(coins>=sk.price)action=`<button type="button" id="buyBtn">${sk.price}코인으로 열기</button>`;
-  else action=`<button type="button" class="ghost" disabled>코인이 ${sk.price-coins}개 더 필요해요</button>`;
-  card.innerHTML=`<h1>캐릭터</h1>
-  <span class="coins"><i class="coin"></i>${coins}</span>
+  const mine=SKINS.filter(k=>owned.includes(k.id)),more=SKINS.length-mine.length;
+  card.innerHTML=`<h1>내 캐릭터</h1>
+  ${msg?`<p class="toast">${msg}</p>`:''}
   <canvas class="hero" id="heroCv"></canvas>
   <label class="namebox">이름 <input id="nameIn" type="text" maxlength="6" value="${esc(myName)}" autocomplete="off" enterkeyhint="done"></label>
+  <p class="step">색깔</p>
   <div class="swatches">${RAINBOW.map(k=>`<button type="button" class="sw${k.c===myColor?' sel':''}" data-c="${k.c}" style="background:${k.c}" aria-label="${k.n}" aria-pressed="${k.c===myColor}"></button>`).join('')}</div>
-  <div class="heroname">${sk.name}</div>
-  ${action}
-  <div class="skins">${SKINS.map(k=>{const o=owned.includes(k.id);return `<button type="button" class="skin${k.id===view?' sel':''}${o?'':' locked'}" data-id="${k.id}"><canvas></canvas><span>${k.name}</span>${o?(k.id===mySkin?'<span class="price">사용 중</span>':'<span class="price">보유</span>'):`<span class="price"><i class="coin"></i>${k.price}</span>`}</button>`;}).join('')}</div>
-  <button type="button" class="ghost" id="backBtn">돌아가기</button>`;
-  drawPreview(document.getElementById('heroCv'),sk.id,myColor);
-  card.querySelectorAll('.skin').forEach(b=>{drawPreview(b.querySelector('canvas'),b.dataset.id,myColor);b.addEventListener('click',()=>skinShop(b.dataset.id));});
+  <p class="step">캐릭터</p>
+  <div class="skins">${mine.map(k=>`<button type="button" class="skin${k.id===mySkin?' sel':''}" data-id="${k.id}" aria-pressed="${k.id===mySkin}"><canvas></canvas><span>${k.name}</span>${k.id===mySkin?'<b class="tick">✓</b>':''}</button>`).join('')}
+  ${more?`<button type="button" class="skin more" id="shopTile"><span class="plus">+</span><span>상점에서<br>더 모으기</span></button>`:''}</div>
+  <button type="button" class="startbtn" id="doneBtn">완료</button>`;
+  drawPreview(document.getElementById('heroCv'),mySkin,myColor);
+  card.querySelectorAll('.skin[data-id]').forEach(b=>{drawPreview(b.querySelector('canvas'),b.dataset.id,myColor);b.addEventListener('click',()=>{mySkin=b.dataset.id;saveWallet();myChar();});});
   const ni=document.getElementById('nameIn');
   ni.addEventListener('input',()=>{const v=ni.value.trim();if(v){myName=v;saveWallet();}});
   ni.addEventListener('change',()=>{if(!ni.value.trim())ni.value=myName;});
   ni.addEventListener('keydown',e=>{if(e.key==='Enter')ni.blur();});
-  card.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{myColor=b.dataset.c;saveWallet();skinShop(view);}));
-  const ub=document.getElementById('useBtn');if(ub)ub.addEventListener('click',()=>{mySkin=sk.id;saveWallet();skinShop(sk.id);});
-  const bb=document.getElementById('buyBtn');if(bb)bb.addEventListener('click',()=>{if(coins<sk.price)return;coins-=sk.price;owned.push(sk.id);mySkin=sk.id;saveWallet();skinShop(sk.id);});
-  document.getElementById('backBtn').addEventListener('click',menu);
+  card.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{myColor=b.dataset.c;saveWallet();myChar();}));
+  const st=document.getElementById('shopTile');if(st)st.addEventListener('click',()=>shop(null,myChar));
+  document.getElementById('doneBtn').addEventListener('click',menu);
+  overlay.hidden=false;if(!msg)overlay.scrollTop=0;
+}
+
+// shop: only characters not owned yet; buying one puts it on right away
+function shop(view,back){
+  state='ready';
+  const items=SKINS.filter(k=>!owned.includes(k.id));
+  const sk=items.find(k=>k.id===view)||items[0];
+  let body;
+  if(!sk)body=`<p>캐릭터를 모두 모았어요!</p>`;
+  else{
+    const need=sk.price-coins;
+    body=`<canvas class="hero" id="heroCv"></canvas>
+    <div class="heroname">${sk.name}</div>
+    ${need<=0?`<button type="button" id="buyBtn"><i class="coin"></i> ${sk.price}코인으로 사기</button>`:`<button type="button" class="ghost" disabled>코인이 ${need}개 더 필요해요</button>`}
+    <div class="skins">${items.map(k=>`<button type="button" class="skin${k.id===sk.id?' sel':''}${k.price>coins?' locked':''}" data-id="${k.id}"><canvas></canvas><span>${k.name}</span><span class="price"><i class="coin"></i>${k.price}</span></button>`).join('')}</div>`;
+  }
+  card.innerHTML=`<h1>상점</h1><span class="coins big"><i class="coin"></i>${coins}<small>스테이지를 통과하고 퀴즈를 맞히면 코인이 생겨요</small></span>${body}
+  <button type="button" class="ghost" id="backBtn">돌아가기</button>`;
+  if(sk){
+    drawPreview(document.getElementById('heroCv'),sk.id,myColor);
+    card.querySelectorAll('.skin').forEach(b=>{drawPreview(b.querySelector('canvas'),b.dataset.id,myColor);b.addEventListener('click',()=>shop(b.dataset.id,back));});
+    const bb=document.getElementById('buyBtn');if(bb)bb.addEventListener('click',()=>{if(coins<sk.price)return;coins-=sk.price;owned.push(sk.id);mySkin=sk.id;saveWallet();myChar(`🎉 ${sk.name}${(sk.name.charCodeAt(sk.name.length-1)-0xAC00)%28?'을':'를'} 샀어요!`);});
+  }
+  document.getElementById('backBtn').addEventListener('click',()=>(back||menu)());
   overlay.hidden=false;overlay.scrollTop=0;
 }
 
