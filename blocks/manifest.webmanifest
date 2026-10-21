@@ -1,0 +1,14 @@
+{
+  "name": "블록 팡팡",
+  "short_name": "블록팡팡",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#4a62c6",
+  "theme_color": "#4a62c6",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
