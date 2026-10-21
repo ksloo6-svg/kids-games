@@ -42,6 +42,7 @@ canvas.mini,canvas.hero,.skin canvas{display:block}
 .hud{position:absolute;top:10px;left:0;right:0;display:flex;align-items:center;gap:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
 .rank{font-family:var(--display);font-size:34px;line-height:1;color:var(--ink);min-width:64px;font-variant-numeric:tabular-nums}
 .rank small{font-size:16px;color:var(--muted)}
+.snowcnt{font-family:var(--display);font-size:22px;color:#fff;border-radius:999px;padding:4px 12px 3px;white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:0 3px 0 rgba(0,0,0,.15)}
 .bar{flex:1;height:12px;border-radius:6px;background:var(--shade);position:relative;overflow:visible}
 .dot{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #fff}
 .flag{position:absolute;right:-4px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted)}
@@ -157,6 +158,12 @@ button:active{box-shadow:0 2px 0 #d93f62}
 .card p.step{font-size:17px;color:#8b6cf6}
 .namebox input{border-radius:999px}
 .coinhint{font-size:14px!important}
+.itemlist{display:flex;flex-direction:column;gap:8px;width:100%}
+.itemcard{display:flex;align-items:center;gap:12px;text-align:left;width:100%;background:#f7f9fd;border-radius:18px;padding:8px 12px;box-sizing:border-box}
+.itemcard b{font-family:var(--display);font-weight:400;font-size:19px;color:var(--ink)}
+.itemcard p{margin:0!important;font-size:15px!important;line-height:1.35!important}
+.itemcard.locked{opacity:.55}
+.itemicon{flex:none;width:52px;height:52px;border-radius:50%;background:#ffffff;border:3px solid var(--shade);display:grid;place-items:center;font-size:28px;font-family:var(--display);color:var(--muted)}
 .help{background:rgba(243,247,251,.96)}
 .namebox{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--muted)}
 .namebox input{font-family:var(--display);font-size:22px;color:var(--ink);width:150px;padding:8px 12px;border:2px solid var(--shade);border-radius:12px;background:#ffffff;text-align:center;-webkit-user-select:text;user-select:text}
@@ -172,6 +179,7 @@ button.sw.sel{box-shadow:0 0 0 3px #ffffff,0 0 0 6px var(--ink)}
   <div class="wrap" id="wrap"><canvas id="cv"></canvas></div>
   <div class="hud">
     <div class="rank" id="rank">1<small>/4위</small></div>
+    <div class="snowcnt" id="snowCnt" hidden></div>
     <div class="bar" id="bar"><span class="flag">🏁</span></div>
     <div class="stagelbl" id="stageLbl">스테이지 1</div>
   </div>
@@ -199,6 +207,7 @@ button.sw.sel{box-shadow:0 0 0 3px #ffffff,0 0 0 6px var(--ink)}
         <span><i style="background:var(--red)"></i>더 큰 눈덩이로 부딪히면 눈을 빼앗아요</span>
       </div>
       <p>화면을 누른 채 가고 싶은 방향으로 끌면 그쪽으로 굴러가요. 3등 안에 들면 다음 스테이지가 열려요. 스테이지는 끝없이 이어져요</p>
+      <div class="itemlist" id="helpItems"></div>
       <button type="button" id="helpOk">알겠어요!</button>
     </div>
   </div>
@@ -239,7 +248,40 @@ function inputAngle(){
 }
 let W=0,H=0,sc=1,offX=0;
 let state='ready',countdown=0,time=0;
-let racers=[],piles=[],rocks=[],waters=[],finishY=0,parts=[],finishedCount=0;
+let racers=[],piles=[],rocks=[],waters=[],finishY=0,parts=[],finishedCount=0,items=[];
+// one-use power-ups: a new kind joins every few stages; 'onlyP' ones are never picked up by rivals
+const ITEMS=[
+  {id:'rocket',icon:'🚀',name:'로켓 신발',say:'슝! 빨라져요',from:3,t:3,ring:'#ff9f43',desc:'잠깐 아주 빨라져요'},
+  {id:'magnet',icon:'🧲',name:'눈 자석',say:'눈이 쑥쑥!',from:5,t:4,ring:'#ff6b9a',desc:'눈덩이가 2배로 빨리 커져요'},
+  {id:'rainbow',icon:'🌈',name:'무지개 다리',say:'다리가 생겨요!',from:8,t:0,ring:'#8b6cf6',desc:'다음 강에 눈을 안 쓰고 다리가 놓여요'},
+  {id:'star',icon:'⭐',name:'별 방패',say:'반짝반짝 튼튼!',from:11,t:5,ring:'#ffc23d',desc:'바위에 부딪혀도, 친구와 부딪혀도 끄떡없어요'},
+  {id:'freeze',icon:'❄️',name:'꽁꽁 눈송이',say:'꽁꽁!',from:15,t:2,ring:'#5cc8ff',desc:'앞에 있는 친구들이 잠깐 느려져요',onlyP:true}
+];
+let seenItems=[];try{seenItems=JSON.parse(localStorage.getItem('snowball-items')||'[]');}catch(e){}
+if(!Array.isArray(seenItems))seenItems=[];
+function placeItems(){
+  items=[];
+  const kinds=ITEMS.filter(k=>k.from<=stage);if(!kinds.length)return;
+  const n=2+(stage>=8?1:0)+(stage>=15?1:0),fresh=kinds.find(k=>k.from===stage);
+  for(let tries=0;items.length<n&&tries<200;tries++){
+    const [a,b]=sections[Math.floor(Math.random()*sections.length)];
+    const y=rand(a+(a===0?260:150),b-120),x=centerAt(y)+rand(-HW+30,HW-30);
+    if(rocks.some(k=>Math.hypot(k.x-x,k.y-y)<45)||items.some(o=>Math.abs(o.y-y)<140))continue;
+    const kind=items.length===0&&fresh?fresh:kinds[Math.floor(Math.random()*kinds.length)];
+    items.push({x,y,kind,taken:false});
+  }
+}
+// the ball stops growing at MAXR; snow beyond that is banked in rc.extra (shown as a number) and spent first
+const total=rc=>rc.r+rc.extra;
+function grow(rc,a){const room=MAXR-rc.r;if(a<=room)rc.r+=a;else{rc.r=MAXR;rc.extra+=a-room;}}
+function lose(rc,a){const e=Math.min(rc.extra,a);rc.extra-=e;rc.r=Math.max(MINR,rc.r-(a-e));}
+function useItem(rc,k){
+  rc.say={text:k.say,icon:k.icon,t:1.8};
+  if(k.id==='rainbow')rc.rainbow=true;
+  else if(k.id==='freeze'){for(const o of racers)if(o!==rc&&!o.done&&o.y>rc.y-40){o.fx.freeze=k.t;splash(o.x,o.y,'#bfe8ff',12);}}
+  else rc.fx[k.id]=k.t;
+  splash(rc.x,rc.y,k.ring,16);
+}
 let dots=[];
 
 function rand(a,b){return a+Math.random()*(b-a)}
@@ -336,7 +378,7 @@ function makeRacers(){
     i,name:names[i],color:colors[i],isP:i===0,
     x:centerAt(0)+(i-1.5)*HW*0.5,y:0,r:i===0?MINR+6:MINR,tx:centerAt(0)+(i-1.5)*HW*0.5,roll:0,
     fall:0,fallGap:null,stun:0,rockCd:0,steal:0,sincePlank:0,ang:0,go:i===0?0:1,
-    done:false,place:0,think:0,passed:[],mark:null,bonusT:0,
+    done:false,place:0,think:0,passed:[],mark:null,bonusT:0,fx:{rocket:0,magnet:0,star:0,freeze:0},extra:0,rainbow:false,say:null,
     skin:i===0?mySkin:'kid',skill:i===0?1.04:Math.min(1.0,diff(stage).ai+rand(-0.04,0.02)),home:(i-1.5)*HW*0.5,boost:1
   }));
   dots=racers.map(r=>{const d=document.createElement('span');d.className='dot';d.style.background=r.color;bar.appendChild(d);return d;});
@@ -379,6 +421,11 @@ function aiThink(rc){
       const dy=p.y-rc.y,dx=Math.abs(p.x-rc.x);
       if(dy>20&&dy<320&&dx<170){const s=dy+dx*1.2;if(s<bd){bd=s;best=p;}}
     }
+    for(const it of items){
+      if(it.taken||it.kind.onlyP)continue;
+      const dy=it.y-rc.y,dx=Math.abs(it.x-rc.x);
+      if(dy>20&&dy<260&&dx<140){const s=dy+dx*1.2-60;if(s<bd){bd=s;best=it;}}
+    }
     if(best)tx=best.x;
     // chase a smaller rival nearby
     if(stage>=4)for(const o of racers){
@@ -398,9 +445,11 @@ function aiThink(rc){
 
 function update(rc,dt){
   if(rc.done)return;
+  for(const k in rc.fx)rc.fx[k]=Math.max(0,rc.fx[k]-dt);
+  if(rc.say){rc.say.t-=dt;if(rc.say.t<=0)rc.say=null;}
   if(rc.fall>0){
     rc.fall-=dt;
-    if(rc.fall<=0){rc.y=rc.fallGap[0]-30;const c=centerAt(rc.y);rc.x=Math.max(c-HW+20,Math.min(c+HW-20,rc.x));rc.r=MINR+10;rc.ang=0;}
+    if(rc.fall<=0){rc.y=rc.fallGap[0]-30;const c=centerAt(rc.y);rc.x=Math.max(c-HW+20,Math.min(c+HW-20,rc.x));rc.r=MINR+10;rc.extra=0;rc.ang=0;}
     return;
   }
   rc.stun=Math.max(0,rc.stun-dt);rc.rockCd=Math.max(0,rc.rockCd-dt);rc.steal=Math.max(0,rc.steal-dt);
@@ -421,7 +470,7 @@ function update(rc,dt){
 
   const size=(rc.r-MINR)/(MAXR-MINR);
   rc.boost=catchUp(rc);
-  const speed=BASE*(1-0.28*size)*(rc.stun>0?0.45:1)*rc.skill*rc.go*rc.boost*(rc.bonusT>0?1.25:1);
+  const speed=BASE*(1-0.28*size)*(rc.stun>0?0.45:1)*rc.skill*rc.go*rc.boost*(rc.bonusT>0?1.25:1)*(rc.fx.rocket>0?1.45:1)*(rc.fx.freeze>0?0.5:1);
   const d=speed*dt;
   const ny=Math.max(-40,rc.y+Math.cos(rc.ang)*d);
   const cc=centerAt(ny);
@@ -436,31 +485,35 @@ function update(rc,dt){
     if(ci<0||grid[ci]!==me){
       const claim=[];
       eachCell(nx,ny,BRIDGE_R,i=>{if(cellWater[i]&&grid[i]!==me)claim.push(i);});
-      const cost=claim.length*(rc.isP?0.14:0.17);
-      if(rc.r-cost<MINR){
-        rc.x=nx;rc.y=ny;rc.r=MINR;rc.fall=0.9;rc.fallGap=w||[ny,ny];
+      const cost=rc.rainbow?0:claim.length*(rc.isP?0.14:0.17);
+      if(total(rc)-cost<MINR){
+        rc.x=nx;rc.y=ny;rc.r=MINR;rc.extra=0;rc.fall=0.9;rc.fallGap=w||[ny,ny];
         splash(rc.x,rc.y,WATER,16);
         return;
       }
-      rc.r-=cost;
+      lose(rc,cost);
       for(const i of claim)grid[i]=me;
     }
   }else if(d>0){
     // snow grows the ball only where nobody has rolled yet
     let fresh=0;
     eachCell(nx,ny,Math.max(10,rc.r*0.7),i=>{if(!cellWater[i]&&grid[i]===0){grid[i]=1;fresh++;}});
-    rc.r=Math.min(MAXR,rc.r+fresh*0.15);
+    grow(rc,fresh*0.15*(rc.fx.magnet>0?2:1));
   }
   rc.x=nx;rc.y=ny;
   rc.roll+=d/rc.r;
 
   for(const p of piles){
-    if(!p.taken&&Math.hypot(p.x-rc.x,p.y-rc.y)<rc.r+11){p.taken=true;rc.r=Math.min(MAXR,rc.r+9);splash(p.x,p.y,'#ffffff',10);}
+    if(!p.taken&&Math.hypot(p.x-rc.x,p.y-rc.y)<rc.r+11){p.taken=true;grow(rc,9);splash(p.x,p.y,'#ffffff',10);}
   }
-  if(rc.rockCd<=0){
+  for(const it of items){
+    if(!it.taken&&!(it.kind.onlyP&&!rc.isP)&&Math.hypot(it.x-rc.x,it.y-rc.y)<rc.r+14){it.taken=true;useItem(rc,it.kind);}
+  }
+  if(rc.fx.rocket>0&&!reduce&&Math.random()<0.5)parts.push({x:rc.x+rand(-rc.r*0.5,rc.r*0.5),y:rc.y-rc.r*0.8,vx:rand(-20,20),vy:-rand(40,90),life:rand(.25,.45),color:Math.random()<.5?'#ffb347':'#ff6b3d'});
+  if(rc.rockCd<=0&&rc.fx.star<=0){
     for(const k of rocks){
       if(Math.hypot(k.x-rc.x,k.y-rc.y)<rc.r+10){
-        rc.r=Math.max(MINR,rc.r*0.8);rc.stun=0.5;rc.rockCd=0.8;
+        lose(rc,total(rc)*0.2);rc.stun=0.5;rc.rockCd=0.8;
         const kd=Math.hypot(rc.x-k.x,rc.y-k.y)||1;
         rc.x+=(rc.x-k.x)/kd*22;rc.y+=(rc.y-k.y)/kd*22;splash(rc.x,rc.y,'#ffffff',12);break;
       }
@@ -470,7 +523,7 @@ function update(rc,dt){
   rc.bonusT=Math.max(0,rc.bonusT-dt);
   waters.forEach((w,wi)=>{
     if(!rc.passed[wi]&&rc.y>=w[1]+10){
-      rc.passed[wi]=true;
+      rc.passed[wi]=true;rc.rainbow=false;
       if(rc.isP)askQuiz(rc);
       else{const p=Math.max(0.55,0.82-stage*0.01),a1=Math.random()<p,a2=!a1&&Math.random()<p;quizResult(rc,a1||a2,!a1);}
     }
@@ -486,10 +539,11 @@ function collide(){
     if(dd<min&&dd>0.01){
       const push=(min-dd)/2,nx=dx/dd;
       A.x-=nx*push;B.x+=nx*push;
-      if(A.steal<=0&&B.steal<=0&&Math.abs(A.r-B.r)>1.5){
-        const big=A.r>B.r?A:B,small=big===A?B:A;
-        const take=Math.min(4,small.r-MINR);
-        big.r=Math.min(MAXR,big.r+take);small.r-=take;
+      if(A.steal<=0&&B.steal<=0&&Math.abs(total(A)-total(B))>1.5){
+        const big=total(A)>total(B)?A:B,small=big===A?B:A;
+        if(small.fx.star>0){A.steal=B.steal=0.5;continue;}
+        const take=Math.min(4,total(small)-MINR);
+        grow(big,take);lose(small,take);
         A.steal=B.steal=0.5;
         splash((A.x+B.x)/2,(A.y+B.y)/2,'#ffffff',8);
       }
@@ -514,7 +568,7 @@ function makeQuestion(){
 function quizResult(rc,ok,second){
   rc.mark={ok,t:2.5};
   if(rc.isP&&ok)runQuiz+=second?2:3;
-  if(ok){rc.r=Math.min(MAXR,rc.r+(second?5:8));rc.bonusT=second?1.5:2.5;splash(rc.x,rc.y,'#fff6cf',14);}
+  if(ok){grow(rc,second?5:8);rc.bonusT=second?1.5:2.5;splash(rc.x,rc.y,'#fff6cf',14);}
 }
 function askQuiz(rc){
   const q=makeQuestion();
@@ -553,6 +607,8 @@ function standings(){
 function hud(){
   const st=standings(),me=racers[0];
   rankEl.innerHTML=(st.indexOf(me)+1)+'<small>/4위</small>';
+  const sn=document.getElementById('snowCnt'),full=me.r>=MAXR-0.01&&me.fall<=0;
+  sn.hidden=!full;if(full){sn.textContent='❄ '+Math.floor(total(me));sn.style.background=shade(me.color,-0.2);}
   racers.forEach((r,i)=>{dots[i].style.left=Math.min(100,r.y/finishY*100)+'%';dots[i].style.zIndex=r.isP?2:1;});
 }
 
@@ -602,7 +658,7 @@ function menu(){
   document.getElementById('skinBtn').addEventListener('click',()=>myChar());
   document.getElementById('heroBtn').addEventListener('click',()=>myChar());
   document.getElementById('shopBtn').addEventListener('click',()=>shop(null,menu));
-  document.getElementById('helpBtn').addEventListener('click',()=>{help.hidden=false;});
+  document.getElementById('helpBtn').addEventListener('click',()=>{const il=document.getElementById('helpItems');il.innerHTML=`<p class="step">아이템</p>`+ITEMS.map(k=>k.from<=unlocked?`<div class="itemcard"><span class="itemicon" style="border-color:${k.ring}">${k.icon}</span><div><b>${k.name}</b><p>${k.desc}</p></div></div>`:`<div class="itemcard locked"><span class="itemicon">?</span><div><b>${k.from}스테이지에서 만나요</b></div></div>`).join('');help.hidden=false;});
   drawPreview(document.getElementById('myHero'),mySkin,myColor);
   overlay.hidden=false;
 }
@@ -665,8 +721,17 @@ function start(s){
   stage=s||1;
   document.getElementById('stageLbl').textContent='스테이지 '+stage;
   bar.querySelectorAll('.dot').forEach(d=>d.remove());
-  buildCourse();plantTrees();makeRacers();parts=[];finishedCount=0;time=0;runQuiz=0;cam=0;camX=centerAt(0);
-  overlay.hidden=true;state='count';countdown=3;hud();
+  buildCourse();plantTrees();makeRacers();placeItems();parts=[];finishedCount=0;time=0;runQuiz=0;cam=0;camX=centerAt(0);
+  const go=()=>{overlay.hidden=true;state='count';countdown=3;hud();};
+  const fresh=ITEMS.filter(k=>k.from<=stage&&!seenItems.includes(k.id));
+  if(!fresh.length)return go();
+  state='ready';
+  card.innerHTML=`<h1>새 아이템이 나와요!</h1>
+  ${fresh.map(k=>`<div class="itemcard"><span class="itemicon" style="border-color:${k.ring}">${k.icon}</span><div><b>${k.name}</b><p>${k.desc}</p></div></div>`).join('')}
+  <p>길에 떠 있는 방울에 닿으면 바로 써져요. 한 번 쓰면 사라져요</p>
+  <button type="button" class="startbtn" id="itemOk">알겠어요!</button>`;
+  overlay.hidden=false;overlay.scrollTop=0;
+  document.getElementById('itemOk').addEventListener('click',()=>{seenItems.push(...fresh.map(k=>k.id));try{localStorage.setItem('snowball-items',JSON.stringify(seenItems));}catch(e){}go();});
 }
 
 // ---------- drawing ----------
@@ -851,7 +916,7 @@ function drawPreview(c,id,team){
 }
 
 function drawBall(rc){
-  const x=SX(rc.x),y=SY(rc.y),r=rc.r*sc;
+  const x=SX(rc.x),y=SY(rc.y),r=(rc.r+Math.min(10,Math.sqrt(rc.extra)*1.4))*sc;
   softShadow(x+r*0.2,y+r*0.55,r*1.35,r*0.75,.32);
   // snowball body
   ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
@@ -868,6 +933,22 @@ function drawBall(rc){
   ctx.restore();
   ctx.strokeStyle='rgba(150,175,205,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r-0.5,0,Math.PI*2);ctx.stroke();
 
+  // full-size ball: show how much snow it is carrying
+  if(rc.r>=MAXR-0.01){
+    const n=Math.floor(total(rc)),bs=Math.round((rc.isP?15:12)*Math.max(1,sc*0.9));
+    ctx.font=`${bs}px ${V('--display')}`;ctx.textAlign='center';ctx.textBaseline='middle';
+    const label='❄ '+n,bw=ctx.measureText(label).width+bs*0.9,by=y+r*0.45;
+    ctx.fillStyle=rc.isP?shade(rc.color,-0.25):'rgba(29,42,68,.75)';
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(x-bw/2,by-bs*0.75,bw,bs*1.5,bs*0.75):ctx.rect(x-bw/2,by-bs*0.75,bw,bs*1.5);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.fillText(label,x,by+1);ctx.textBaseline='alphabetic';
+  }
+  // active power-up glow around the ball
+  for(const k of ITEMS){
+    if(!(rc.fx[k.id]>0))continue;
+    ctx.save();ctx.globalAlpha=0.55+0.3*Math.sin(time*10);ctx.strokeStyle=k.ring;ctx.lineWidth=4*sc;
+    ctx.beginPath();ctx.arc(x,y,r+4*sc,0,Math.PI*2);ctx.stroke();ctx.restore();
+    if(k.id==='freeze'){ctx.fillStyle='rgba(150,215,255,.45)';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+  }
   // rider standing on top
   const s=Math.max(7,10.5*sc),hx=x,hy=y-r*0.5;
   const step=Math.sin(rc.roll*3)*(rc.go||1);
@@ -891,7 +972,22 @@ function drawBall(rc){
     else{ctx.moveTo(-mr*0.4,-mr*0.4);ctx.lineTo(mr*0.4,mr*0.4);ctx.moveTo(mr*0.4,-mr*0.4);ctx.lineTo(-mr*0.4,mr*0.4);}
     ctx.stroke();ctx.restore();
   }
-  if(rc.isP&&rc.boost>1.04&&rc.go>0.5&&!rc.mark){
+  // item word bubble, plus small icons for what is still running
+  const live=ITEMS.filter(k=>rc.fx[k.id]>0||(k.id==='rainbow'&&rc.rainbow));
+  if(live.length){
+    ctx.font=`${Math.round(fs*1.2)}px sans-serif`;
+    live.forEach((k,j)=>ctx.fillText(k.icon,hx+tw/2+fs*(0.9+j*1.3),ty));
+    ctx.font=`${fs}px ${V('--body')}`;
+  }
+  if(rc.say&&!rc.mark){
+    const pop=Math.min(1,(1.8-rc.say.t)*6),fy=ty-fs*1.7;
+    ctx.save();ctx.translate(hx,fy);ctx.scale(pop,pop);
+    ctx.font=`${Math.round(fs*1.35)}px ${V('--display')}`;
+    ctx.lineWidth=5;ctx.lineJoin='round';ctx.strokeStyle='#ffffff';ctx.strokeText(rc.say.icon+' '+rc.say.text,0,0);
+    ctx.fillStyle=INK;ctx.fillText(rc.say.icon+' '+rc.say.text,0,0);
+    ctx.restore();ctx.font=`${fs}px ${V('--body')}`;
+  }
+  else if(rc.isP&&rc.boost>1.04&&rc.go>0.5&&!rc.mark){
     ctx.lineWidth=3;ctx.strokeStyle='#ffffff';ctx.strokeText('추격 부스트',hx,ty-fs*1.4);
     ctx.fillStyle='#e0a100';ctx.fillText('추격 부스트',hx,ty-fs*1.4);
   }
@@ -1021,6 +1117,19 @@ function draw(){
     ctx.fillStyle='#fff6cf';ctx.beginPath();
     for(let k=0;k<8;k++){const a=k*Math.PI/4,l=k%2?2*sc:5.5*sc;ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l);}
     ctx.fill();ctx.restore();
+  }
+
+  // power-up bubbles: bob, glow and show the item's picture
+  for(const it of items){
+    if(it.taken||it.y<bot||it.y>top)continue;
+    const x=SX(it.x),y=SY(it.y)-(4+3*Math.sin(time*3+it.x))*sc,r=14*sc,pulse=1+0.08*Math.sin(time*5+it.y);
+    softShadow(SX(it.x)+2*sc,SY(it.y)+8*sc,r*1.1,r*0.45,.25);
+    ctx.save();ctx.translate(x,y);ctx.scale(pulse,pulse);
+    ctx.globalAlpha=.35;ctx.fillStyle=it.kind.ring;ctx.beginPath();ctx.arc(0,0,r*1.45,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();
+    ctx.lineWidth=3*sc;ctx.strokeStyle=it.kind.ring;ctx.stroke();
+    ctx.font=`${Math.round(r*1.15)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(it.kind.icon,0,r*0.06);
+    ctx.restore();
   }
 
   // rocks
