@@ -240,7 +240,7 @@ function celebrate(L,v){
   burst(L.x,.6,-dist,colOf(v),10);
 }
 function collect(L,cube){
-  cube.taken=true;cube.mesh.visible=false;
+  cube.taken=true;cube.fly={L,t:0,x:cube.mesh.position.x,y:cube.mesh.position.y,z:cube.mesh.position.z};
   L.chain.push(cube.v);const n=normChain(L.chain);L.dirty=true;L.w=Math.max(L.w,.3);
   texts.push({t:'+'+cube.v,x:cube.x,y:1.6,z:cube.z,life:.8,col:colOf(cube.v)});
   if(n)celebrate(L,L.chain[0]);
@@ -268,12 +268,13 @@ function update(dt){
       L.hist.push({d:dist,x:L.x});if(L.hist.length>240)L.hist.shift();
     });
     joinIfClose();
-    // cubes & bars only meet the head of each line
+    // number cubes meet every cube of the jelly (head and tail) so nothing slips through it; bars only meet the head
     for(const L of lines){
       const h=sizeOf(L.chain[0])/2*.85;
+      const pts=linePts(L);
       for(const c of course.cubes){
-        if(c.taken||Math.abs(c.z-z)>.75)continue;
-        if(Math.abs(c.x-L.x)<h+.42)collect(L,c);
+        if(c.taken||c.z<z-1.5||c.z>z+pts.len+1)continue;
+        for(const q of pts)if(Math.abs(c.z-q.z)<(q.s+c.s)/2&&Math.abs(c.x-q.x)<(q.s+c.s)/2+.1){collect(L,c);break;}
       }
       for(const o of course.obs){
         if(Math.abs(o.z-z)>.5||o.hitBy.has(L))continue;
@@ -482,6 +483,12 @@ function syncLine(L){
   const hs=L.meshes[0]?L.meshes[0].userData.s:1;
   L.shadow.scale.setScalar(hs);L.shadow.position.set(L.x,.015,z0);
 }
+// where each cube of a line sits right now: head at the front, tail along the path the head took
+function linePts(L){
+  const pts=[];let back=0;
+  L.chain.forEach((v,i)=>{const s=sizeOf(v);if(i)back+=(sizeOf(L.chain[i-1])+s)/2+.08;pts.push({x:i?histX(L,dist-back):L.x,z:-dist+back,s,back});});
+  pts.len=back;return pts;
+}
 function histX(L,d){
   const h=L.hist;if(!h.length)return L.x;
   for(let i=h.length-1;i>0;i--){if(h[i-1].d<=d){const a=h[i-1],b=h[i],k=b.d>a.d?(d-a.d)/(b.d-a.d):0;return a.x+(b.x-a.x)*clamp(k,0,1);}}
@@ -502,7 +509,15 @@ function sync3D(dt,now){
   lines.forEach(syncLine);
   if(course){
     const z=-dist;
-    for(const c of course.cubes){if(c.taken||c.z>z+8||c.z<z-60)continue;c.mesh.position.y=c.s/2+Math.abs(Math.sin(now/260+c.ph))*.1;c.mesh.rotation.y=Math.sin(now/600+c.ph)*.25;}
+    for(const c of course.cubes){
+      if(c.fly){
+        // quick hop into the jelly head, shrinking as it goes
+        const f=c.fly;f.t+=dt*5;const k=Math.min(1,f.t),hx=f.L.meshes[0]?f.L.meshes[0].position:null;
+        if(k>=1||!hx){c.mesh.visible=false;c.fly=null;continue;}
+        c.mesh.position.set(f.x+(hx.x-f.x)*k,f.y+(hx.y-f.y)*k+Math.sin(k*Math.PI)*.6,f.z+(hx.z-f.z)*k);
+        c.mesh.scale.setScalar(c.s*(1-k*.7));continue;
+      }
+      if(c.taken||c.z>z+8||c.z<z-60)continue;c.mesh.position.y=c.s/2+Math.abs(Math.sin(now/260+c.ph))*.1;c.mesh.rotation.y=Math.sin(now/600+c.ph)*.25;}
     for(const o of course.obs){
       if(o.wob>0)o.wob=Math.max(0,o.wob-dt*2.5);
       o.g.rotation.z=Math.sin(o.wob*20)*o.wob*.06;
@@ -638,7 +653,7 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 // read-only peek for automated checks
-window.jellyDebug=()=>({state,dist,split,lines:lines.map(l=>({x:l.x,chain:l.chain.slice()})),course,broken,coins,level,best});
+window.jellyDebug=()=>({state,dist,split,lines:lines.map(l=>({x:l.x,chain:l.chain.slice(),meshes:l.meshes.map(m=>({x:m.position.x,z:m.position.z,s:m.userData.s}))})),course,broken,coins,level,best});
 window.jellyCoins=v=>{coins=v;setCoins();showUp();};
 resize();showMenu();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{refreshCubeMats();drawHelpIcons();});
