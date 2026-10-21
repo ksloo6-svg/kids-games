@@ -54,7 +54,7 @@ canvas.mini,canvas.hero,.skin canvas{display:block}
 .qgrid button.ok{background:var(--green);box-shadow:0 5px 0 #1f7a3c}
 .qgrid button.no{background:#c9cfda;box-shadow:0 5px 0 #a3abba}
 .qmsg{min-height:24px;font-size:18px;color:var(--ink);text-align:center}
-.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:20px;overflow-y:auto;background:rgba(243,247,251,.82)}
+.overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:20px;overflow-y:auto;background:rgba(243,247,251,.82)}
 .card{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;max-width:320px}
 .card h1{font-family:var(--display);font-weight:400;font-size:46px;line-height:1.05;margin:0;text-wrap:balance;color:var(--ink)}
 .card h1 em{font-style:normal;color:var(--blue)}
@@ -110,10 +110,12 @@ button:disabled{cursor:default}
 button.ghost{background:#ffffff;color:var(--ink);box-shadow:0 5px 0 var(--shade)}
 button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .card{position:relative}
+button.backbtn{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 12px);left:max(12px,env(safe-area-inset-left,0px),calc(50vw - 268px));height:44px;padding:0 16px 0 12px;border-radius:22px;font-size:19px;background:#ffffff;color:var(--ink);box-shadow:0 4px 0 var(--shade)}
 button.helpbtn{position:absolute;top:-6px;right:-6px;width:44px;height:44px;padding:0;border-radius:50%;font-size:26px;background:#ffffff;color:var(--ink);box-shadow:0 4px 0 var(--shade)}
 button.herobtn{display:flex;flex-direction:column;align-items:center;gap:0;background:none;box-shadow:none;padding:0;color:var(--ink)}
 button.herobtn:active{transform:scale(.96);box-shadow:none}
 button.herobtn .heroname{margin-top:-6px}
+h1.padh{padding-top:40px}
 .help{background:rgba(243,247,251,.96)}
 .namebox{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--muted)}
 .namebox input{font-family:var(--display);font-size:22px;color:var(--ink);width:150px;padding:8px 12px;border:2px solid var(--shade);border-radius:12px;background:#ffffff;text-align:center;-webkit-user-select:text;user-select:text}
@@ -568,7 +570,7 @@ function menu(){
 function myChar(msg){
   state='ready';
   const mine=SKINS.filter(k=>owned.includes(k.id)),more=SKINS.length-mine.length;
-  card.innerHTML=`<h1>내 캐릭터</h1>
+  card.innerHTML=`<button type="button" class="backbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button><h1 class="padh">내 캐릭터</h1>
   ${msg?`<p class="toast">${msg}</p>`:''}
   <canvas class="hero" id="heroCv"></canvas>
   <label class="namebox">이름 <input id="nameIn" type="text" maxlength="6" value="${esc(myName)}" autocomplete="off" enterkeyhint="done"></label>
@@ -587,6 +589,7 @@ function myChar(msg){
   card.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{myColor=b.dataset.c;saveWallet();myChar();}));
   const st=document.getElementById('shopTile');if(st)st.addEventListener('click',()=>shop(null,myChar));
   document.getElementById('doneBtn').addEventListener('click',menu);
+  document.getElementById('backBtn').addEventListener('click',menu);
   overlay.hidden=false;if(!msg)overlay.scrollTop=0;
 }
 
@@ -604,8 +607,8 @@ function shop(view,back){
     ${need<=0?`<button type="button" id="buyBtn"><i class="coin"></i> ${sk.price}코인으로 사기</button>`:`<button type="button" class="ghost" disabled>코인이 ${need}개 더 필요해요</button>`}
     <div class="skins">${items.map(k=>`<button type="button" class="skin${k.id===sk.id?' sel':''}${k.price>coins?' locked':''}" data-id="${k.id}"><canvas></canvas><span>${k.name}</span><span class="price"><i class="coin"></i>${k.price}</span></button>`).join('')}</div>`;
   }
-  card.innerHTML=`<h1>상점</h1><span class="coins big"><i class="coin"></i>${coins}<small>스테이지를 통과하고 퀴즈를 맞히면 코인이 생겨요</small></span>${body}
-  <button type="button" class="ghost" id="backBtn">돌아가기</button>`;
+  card.innerHTML=`<button type="button" class="backbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button><h1 class="padh">상점</h1><span class="coins big"><i class="coin"></i>${coins}<small>스테이지를 통과하고 퀴즈를 맞히면 코인이 생겨요</small></span>${body}
+`;
   if(sk){
     drawPreview(document.getElementById('heroCv'),sk.id,myColor);
     card.querySelectorAll('.skin').forEach(b=>{drawPreview(b.querySelector('canvas'),b.dataset.id,myColor);b.addEventListener('click',()=>shop(b.dataset.id,back));});
