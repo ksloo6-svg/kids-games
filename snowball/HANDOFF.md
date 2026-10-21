@@ -27,7 +27,9 @@
 ## 코인·캐릭터
 - 통과 보상: 10 + min(스테이지×4, 120), 1등 +10, 퀴즈 보너스 별도.
 - 캐릭터 9종: 꼬마(기본), 강아지 30, 고양이 30, 토끼 50, 펭귄 60, 곰 80, 자동차 100, 기차 120, 공룡 150.
-- 진행 저장: 기기 브라우저 localStorage(`snowball-unlocked`, `snowball-coins`, `snowball-owned`, `snowball-skin`) — 기기마다 따로 저장.
+- 캐릭터 꾸미기 화면에서 무지개 7색 중 내 색, 내 이름(최대 6글자) 설정. 상대 3명은 이름 목록에서 랜덤, 색은 내 색과 이웃하지 않는 무지개색으로 랜덤.
+- 첫 화면: 제목, 현재 캐릭터(누르면 꾸미기), 스테이지 선택, START. 게임 설명은 오른쪽 위 ? 버튼.
+- 진행 저장: 기기 브라우저 localStorage(`snowball-unlocked`, `snowball-coins`, `snowball-owned`, `snowball-skin`, `snowball-color`, `snowball-name`) — 기기마다 따로 저장.
 
 ## 다음에 해볼 수 있는 것
 - 효과음·문제 읽어주기, 캐릭터 추가, 난이도 미세 조정

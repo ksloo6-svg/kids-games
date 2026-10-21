@@ -102,6 +102,18 @@ button:disabled{cursor:default}
 .qgrid button:disabled{cursor:default}
 button.ghost{background:#ffffff;color:var(--ink);box-shadow:0 5px 0 var(--shade)}
 button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.card{position:relative}
+button.helpbtn{position:absolute;top:-6px;right:-6px;width:44px;height:44px;padding:0;border-radius:50%;font-size:26px;background:#ffffff;color:var(--ink);box-shadow:0 4px 0 var(--shade)}
+button.herobtn{display:flex;flex-direction:column;align-items:center;gap:0;background:none;box-shadow:none;padding:0;color:var(--ink)}
+button.herobtn:active{transform:scale(.96);box-shadow:none}
+button.herobtn .heroname{margin-top:-6px}
+.help{background:rgba(243,247,251,.96)}
+.namebox{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--muted)}
+.namebox input{font-family:var(--display);font-size:22px;color:var(--ink);width:150px;padding:8px 12px;border:2px solid var(--shade);border-radius:12px;background:#ffffff;text-align:center;-webkit-user-select:text;user-select:text}
+.namebox input:focus{outline:none;border-color:var(--blue)}
+.swatches{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+button.sw{width:36px;height:36px;padding:0;border-radius:50%;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+button.sw.sel{box-shadow:0 0 0 3px #ffffff,0 0 0 6px var(--ink)}
 </style>
 
 </head>
@@ -124,6 +136,11 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
   <div class="overlay" id="overlay">
     <div class="card" id="card">
       <h1>눈굴리기<br><em>대작전</em></h1>
+    </div>
+  </div>
+  <div class="overlay help" id="help" hidden>
+    <div class="card">
+      <h1>이렇게 놀아요</h1>
       <div class="rules">
         <span><i style="background:#cfdcea"></i>새 눈밭을 달리면 커져요. 누가 지나간 자국에선 안 커져요</span>
         <span><i style="background:var(--water)"></i>물 위에선 내 색 다리로만 갈 수 있어요</span>
@@ -132,6 +149,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
         <span><i style="background:var(--red)"></i>더 큰 눈덩이로 부딪히면 눈을 빼앗아요</span>
       </div>
       <p>화면을 누른 채 가고 싶은 방향으로 끌면 그쪽으로 굴러가요. 3등 안에 들면 다음 스테이지가 열려요. 스테이지는 끝없이 이어져요</p>
+      <button type="button" id="helpOk">알겠어요!</button>
     </div>
   </div>
 </div>
@@ -139,19 +157,23 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 <script>
 (()=>{
 const wrap=document.getElementById('wrap'),cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const help=document.getElementById('help');document.getElementById('helpOk').addEventListener('click',()=>{help.hidden=true;});
 const overlay=document.getElementById('overlay'),card=document.getElementById('card'),rankEl=document.getElementById('rank'),bar=document.getElementById('bar');
 const css=getComputedStyle(document.documentElement),V=n=>css.getPropertyValue(n).trim();
 const SNOW=V('--snow'),SHADE=V('--shade'),WATER=V('--water'),INK=V('--ink');
-const COLORS=[V('--red'),V('--blue'),V('--green'),V('--purple')];
-const NAMES=['나','민준','서연','하준'];
+const RAINBOW=[{c:'#e8423f',n:'빨강'},{c:'#f5841f',n:'주황'},{c:'#f2be1a',n:'노랑'},{c:'#2fae57',n:'초록'},{c:'#3a7bf0',n:'파랑'},{c:'#3f4fb8',n:'남색'},{c:'#8b5cf6',n:'보라'}];
+const NAME_POOL=['민준','서연','하준','지우','도윤','서아','하은','시우','지호','수아','예준','아린','유나','은우','로아','이안','하린','주원','다온','윤슬','콩이','별이','눈송이','뭉치'];
+const esc=t=>String(t).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const WW=400,XW=1000,MINR=9,MAXR=36,BASE=165;
 const MENU_HTML=card.innerHTML;
-let stage=1,unlocked=1,coins=0,owned=['kid'],mySkin='kid',runQuiz=0;
-try{coins=parseInt(localStorage.getItem('snowball-coins')||'0',10)||0;owned=JSON.parse(localStorage.getItem('snowball-owned')||'["kid"]');mySkin=localStorage.getItem('snowball-skin')||'kid';}catch(e){}
+let stage=1,unlocked=1,coins=0,owned=['kid'],mySkin='kid',myColor=RAINBOW[0].c,myName='나',runQuiz=0;
+try{coins=parseInt(localStorage.getItem('snowball-coins')||'0',10)||0;owned=JSON.parse(localStorage.getItem('snowball-owned')||'["kid"]');mySkin=localStorage.getItem('snowball-skin')||'kid';myColor=localStorage.getItem('snowball-color')||myColor;myName=localStorage.getItem('snowball-name')||myName;}catch(e){}
+if(!RAINBOW.some(k=>k.c===myColor))myColor=RAINBOW[0].c;
 if(!Array.isArray(owned)||!owned.includes('kid'))owned=['kid'];if(!owned.includes(mySkin))mySkin='kid';
-function saveWallet(){try{localStorage.setItem('snowball-coins',coins);localStorage.setItem('snowball-owned',JSON.stringify(owned));localStorage.setItem('snowball-skin',mySkin);}catch(e){}}
+function saveWallet(){try{localStorage.setItem('snowball-coins',coins);localStorage.setItem('snowball-owned',JSON.stringify(owned));localStorage.setItem('snowball-skin',mySkin);localStorage.setItem('snowball-color',myColor);localStorage.setItem('snowball-name',myName);}catch(e){}}
 try{unlocked=Math.max(1,parseInt(localStorage.getItem('snowball-unlocked')||'1',10)||1)}catch(e){}
 const joy={active:false,ox:0,oy:0,x:0,y:0};
 function inputAngle(){
@@ -239,7 +261,7 @@ function buildCourse(){
 // ground grid: on snow 1 = already rolled over; on water owner+1 = whose bridge it is
 const CS=8,COLS=XW/CS,YOFF=80,BRIDGE_R=13;
 let ROWS=0,grid=new Uint8Array(0),cellWater=new Uint8Array(0);
-const BRIDGE=['#f5b2b0','#b3cbf8','#a8dcb8','#d3c3fb'];
+let BRIDGE=[];
 function eachCell(x,y,R,fn){
   const r0=Math.max(0,Math.floor((y-R+YOFF)/CS)),r1=Math.min(ROWS-1,Math.floor((y+R+YOFF)/CS));
   const c0=Math.max(0,Math.floor((x-R)/CS)),c1=Math.min(COLS-1,Math.floor((x+R)/CS));
@@ -252,8 +274,16 @@ function cellAt(x,y){const r=Math.floor((y+YOFF)/CS),c=Math.max(0,Math.min(COLS-
 function waterAt(y){for(const w of waters)if(y>=w[0]&&y<w[1])return w;return null;}
 
 function makeRacers(){
+  // rivals get random names and colours that sit away from mine on the rainbow, so everyone is easy to tell apart
+  const mi=RAINBOW.findIndex(k=>k.c===myColor);
+  const pick=[mi],near=j=>pick.some(q=>Math.abs(q-j)<2);
+  shuffle(RAINBOW.map((k,j)=>j)).forEach(j=>{if(pick.length<4&&!near(j))pick.push(j);});
+  shuffle(RAINBOW.map((k,j)=>j)).forEach(j=>{if(pick.length<4&&Math.abs(j-mi)>1&&!pick.includes(j))pick.push(j);});
+  const colors=pick.map(j=>RAINBOW[j].c);
+  const names=[myName,...shuffle(NAME_POOL.filter(n=>n!==myName)).slice(0,3)];
+  BRIDGE=colors.map(c=>shade(c,0.55));
   racers=[0,1,2,3].map(i=>({
-    i,name:NAMES[i],color:COLORS[i],isP:i===0,
+    i,name:names[i],color:colors[i],isP:i===0,
     x:centerAt(0)+(i-1.5)*HW*0.5,y:0,r:i===0?MINR+6:MINR,tx:centerAt(0)+(i-1.5)*HW*0.5,roll:0,
     fall:0,fallGap:null,stun:0,rockCd:0,steal:0,sincePlank:0,ang:0,go:i===0?0:1,
     done:false,place:0,think:0,passed:[],mark:null,bonusT:0,
@@ -488,7 +518,7 @@ function finish(){
   const mainBtn=clear&&!last?`<button id="nextBtn" type="button">다음 스테이지</button>`:`<button id="againBtn" type="button">다시 하기</button>`;
   card.innerHTML=`<h1>${head}</h1><p>${sub}</p>
   <div class="coins big">+${earned} <i class="coin"></i><small>퀴즈 보너스 ${runQuiz}코인 포함 · 보유 ${coins}</small></div>
-  <div class="standings">${st.map((r,i)=>`<div class="row${r.isP?' me':''}"><b>${i+1}</b><i style="background:${r.color}"></i>${r.name}</div>`).join('')}</div>
+  <div class="standings">${st.map((r,i)=>`<div class="row${r.isP?' me':''}"${r.isP?` style="color:${shade(r.color,-0.25)}"`:''}><b>${i+1}</b><i style="background:${r.color}"></i>${esc(r.name)}</div>`).join('')}</div>
   <div class="btns">${mainBtn}<button class="ghost" id="menuBtn" type="button">스테이지 선택</button></div>`;
   overlay.hidden=false;
   const nb=document.getElementById('nextBtn');if(nb)nb.addEventListener('click',()=>{picked=stage+1;page=-1;start(stage+1);});
@@ -508,8 +538,10 @@ function menu(){
     grid+=`<button type="button" data-s="${s}" class="${done?'cleared':''}${s===picked?' sel':''}" ${open?'':'disabled'} aria-pressed="${s===picked}" aria-label="스테이지 ${s}">${s}</button>`;
   }
   grid+=`</div><p class="best">지금까지 열린 스테이지: ${unlocked}</p><button type="button" class="startbtn" id="goBtn">START</button>
-  <div class="mybar"><canvas class="mini" id="myMini"></canvas><span class="coins"><i class="coin"></i>${coins}</span><button type="button" class="ghost small" id="skinBtn">캐릭터 고르기</button></div>`;
-  card.innerHTML=MENU_HTML+grid;
+  <div class="mybar"><span class="coins"><i class="coin"></i>${coins}</span><button type="button" class="ghost small" id="skinBtn">캐릭터 꾸미기</button></div>`;
+  const hero=`<button type="button" class="helpbtn" id="helpBtn" aria-label="게임 방법">?</button>
+  <button type="button" class="herobtn" id="heroBtn" aria-label="캐릭터 꾸미기"><canvas class="hero" id="myHero"></canvas><span class="heroname">${esc(myName)}</span></button>`;
+  card.innerHTML=MENU_HTML+hero+grid;
   card.querySelectorAll('.stages button').forEach(b=>b.addEventListener('click',()=>{
     picked=+b.dataset.s;
     card.querySelectorAll('.stages button').forEach(o=>{const on=+o.dataset.s===picked;o.classList.toggle('sel',on);o.setAttribute('aria-pressed',on);});
@@ -518,7 +550,9 @@ function menu(){
   document.getElementById('nextPg').addEventListener('click',()=>{page=Math.min(maxPage,page+1);menu();});
   document.getElementById('goBtn').addEventListener('click',()=>start(picked));
   document.getElementById('skinBtn').addEventListener('click',()=>skinShop(mySkin));
-  drawPreview(document.getElementById('myMini'),mySkin,COLORS[0]);
+  document.getElementById('heroBtn').addEventListener('click',()=>skinShop(mySkin));
+  document.getElementById('helpBtn').addEventListener('click',()=>{help.hidden=false;});
+  drawPreview(document.getElementById('myHero'),mySkin,myColor);
   overlay.hidden=false;
 }
 
@@ -534,12 +568,19 @@ function skinShop(view){
   card.innerHTML=`<h1>캐릭터</h1>
   <span class="coins"><i class="coin"></i>${coins}</span>
   <canvas class="hero" id="heroCv"></canvas>
+  <label class="namebox">이름 <input id="nameIn" type="text" maxlength="6" value="${esc(myName)}" autocomplete="off" enterkeyhint="done"></label>
+  <div class="swatches">${RAINBOW.map(k=>`<button type="button" class="sw${k.c===myColor?' sel':''}" data-c="${k.c}" style="background:${k.c}" aria-label="${k.n}" aria-pressed="${k.c===myColor}"></button>`).join('')}</div>
   <div class="heroname">${sk.name}</div>
   ${action}
   <div class="skins">${SKINS.map(k=>{const o=owned.includes(k.id);return `<button type="button" class="skin${k.id===view?' sel':''}${o?'':' locked'}" data-id="${k.id}"><canvas></canvas><span>${k.name}</span>${o?(k.id===mySkin?'<span class="price">사용 중</span>':'<span class="price">보유</span>'):`<span class="price"><i class="coin"></i>${k.price}</span>`}</button>`;}).join('')}</div>
   <button type="button" class="ghost" id="backBtn">돌아가기</button>`;
-  drawPreview(document.getElementById('heroCv'),sk.id,COLORS[0]);
-  card.querySelectorAll('.skin').forEach(b=>{drawPreview(b.querySelector('canvas'),b.dataset.id,COLORS[0]);b.addEventListener('click',()=>skinShop(b.dataset.id));});
+  drawPreview(document.getElementById('heroCv'),sk.id,myColor);
+  card.querySelectorAll('.skin').forEach(b=>{drawPreview(b.querySelector('canvas'),b.dataset.id,myColor);b.addEventListener('click',()=>skinShop(b.dataset.id));});
+  const ni=document.getElementById('nameIn');
+  ni.addEventListener('input',()=>{const v=ni.value.trim();if(v){myName=v;saveWallet();}});
+  ni.addEventListener('change',()=>{if(!ni.value.trim())ni.value=myName;});
+  ni.addEventListener('keydown',e=>{if(e.key==='Enter')ni.blur();});
+  card.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{myColor=b.dataset.c;saveWallet();skinShop(view);}));
   const ub=document.getElementById('useBtn');if(ub)ub.addEventListener('click',()=>{mySkin=sk.id;saveWallet();skinShop(sk.id);});
   const bb=document.getElementById('buyBtn');if(bb)bb.addEventListener('click',()=>{if(coins<sk.price)return;coins-=sk.price;owned.push(sk.id);mySkin=sk.id;saveWallet();skinShop(sk.id);});
   document.getElementById('backBtn').addEventListener('click',menu);
@@ -762,7 +803,7 @@ function drawBall(rc){
   const fs=Math.round(13*Math.max(1,sc*0.9));
   ctx.font=`${fs}px ${V('--body')}`;ctx.textAlign='center';ctx.textBaseline='middle';
   const ty=hy-s*2.5,tw=ctx.measureText(rc.name).width+12;
-  ctx.fillStyle=rc.isP?rc.color:'rgba(29,42,68,.72)';
+  ctx.fillStyle=rc.isP?shade(rc.color,-0.3):'rgba(29,42,68,.72)';
   ctx.beginPath();ctx.roundRect?ctx.roundRect(hx-tw/2,ty-fs*0.7,tw,fs*1.4,fs*0.7):ctx.rect(hx-tw/2,ty-fs*0.7,tw,fs*1.4);ctx.fill();
   ctx.fillStyle='#ffffff';ctx.fillText(rc.name,hx,ty+1);
   if(rc.mark){
@@ -889,7 +930,7 @@ function draw(){
     for(let i=0;fl+i*cs<fr;i++)for(let j=0;j<2;j++){ctx.fillStyle=(i+j)%2?INK:'#ffffff';ctx.fillRect(fl+i*cs,fy-cs*(j+1),Math.min(cs,fr-fl-i*cs),cs);}
     const ph=60*sc,pa=SX(fc-HW+10),pb=SX(fc+HW-10);
     [pa,pb].forEach(px=>{softShadow(px+4*sc,fy,8*sc,4*sc,.35);ctx.fillStyle='#d8dee8';ctx.fillRect(px-3*sc,fy-ph,6*sc,ph);});
-    ctx.fillStyle=COLORS[0];ctx.fillRect(pa,fy-ph-4*sc,pb-pa,22*sc);
+    ctx.fillStyle=myColor;ctx.fillRect(pa,fy-ph-4*sc,pb-pa,22*sc);
     ctx.fillStyle='#ffffff';ctx.font=`${Math.round(16*sc)}px ${V('--display')}`;ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('도착',(pa+pb)/2,fy-ph+7*sc);ctx.textBaseline='alphabetic';
   }
@@ -948,13 +989,13 @@ function draw(){
     let jx=joy.x-joy.ox,jy=joy.y-joy.oy;const m=Math.hypot(jx,jy);if(m>R){jx*=R/m;jy*=R/m;}
     ctx.fillStyle='rgba(29,42,68,.10)';ctx.beginPath();ctx.arc(joy.ox,joy.oy,R,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(29,42,68,.25)';ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle=COLORS[0];ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(joy.ox+jx,joy.oy+jy,18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle=myColor;ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(joy.ox+jx,joy.oy+jy,18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
   }
   if(state==='count'||(state==='play'&&time<3.7)){
     const txt=state==='count'?String(Math.ceil(countdown)):'출발!';
     ctx.font=`${Math.round(90*Math.min(1.4,sc))}px ${V('--display')}`;ctx.textAlign='center';
     ctx.lineWidth=10;ctx.lineJoin='round';ctx.strokeStyle='#ffffff';ctx.strokeText(txt,W/2,H*0.42);
-    ctx.fillStyle=COLORS[0];ctx.fillText(txt,W/2,H*0.42);
+    ctx.fillStyle=myColor;ctx.fillText(txt,W/2,H*0.42);
   }
 }
 
@@ -984,7 +1025,7 @@ wrap.addEventListener('pointermove',e=>{if(!joy.active)return;const [x,y]=local(
 const endDrag=()=>{joy.active=false;};
 wrap.addEventListener('pointerup',endDrag);wrap.addEventListener('pointercancel',endDrag);
 const keys={};
-window.addEventListener('keydown',e=>{if(e.key.startsWith('Arrow')){keys[e.key]=true;e.preventDefault();}});
+window.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key.startsWith('Arrow')){keys[e.key]=true;e.preventDefault();}});
 window.addEventListener('keyup',e=>{keys[e.key]=false;});
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(wrap);
