@@ -186,6 +186,7 @@ const FLOORC=['#fff1d6','#e3f2ff','#f0e6ff','#e2f8e4','#ffe6ef','#fff8cc'];
 const rand=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 let gaps=2,F=3,finishY=0,stairs=[],blocks=[],chars=[],me=null,parts=[],order=[];
+let toastT=0,toastC=null;
 let state='menu',readyT=0,endT=0,camY=0,hintT=0,moved=false;
 
 function spot(x,y){
@@ -328,7 +329,12 @@ function update(dt){
   if(racing){
     for(const c of chars){
       c.move=false;
-      if(c.stun>0||c.finished)continue;
+      if(c.finished){
+        const tx=W/2+(order.indexOf(c)-1.5)*1.1,ty=finishY+1.8,vx=tx-c.x,vy=ty-c.y,l=Math.hypot(vx,vy);
+        if(l>.05){const m=Math.min(l,SPEED*.6*dt);c.x+=vx/l*m;c.y+=vy/l*m;c.move=true;}
+        continue;
+      }
+      if(c.stun>0)continue;
       let dx=0,dy=0;
       if(c.isMe){
         if(state!=='race')continue;
@@ -369,7 +375,8 @@ function update(dt){
       if(!c.finished&&c.y>=finishY){
         c.finished=true;order.push(c);
         for(let i=0;i<30;i++)parts.push({x:c.x,y:c.y+1,vx:rand(-3,3),vy:rand(1,5),life:1.2,col:COLORS[i%7].c,kind:'conf'});
-        if(state==='race'){state='end';endT=1.8;}
+        // the race goes on after a friend arrives, so I can still come 2nd or 3rd
+        if(state==='race'){if(c===me||order.length>=chars.length-1){state='end';endT=1.8;}else{toastT=2.2;toastC=c;}}
       }
     }
     // bumps: the one carrying fewer blocks falls and drops them
@@ -388,6 +395,7 @@ function update(dt){
   for(const p of parts){if(p.z===undefined)p.z=(groundH(p.x,p.y)??(me?me.h||0:0))+.6;p.x+=p.vx*dt;p.z+=p.vy*dt;p.vy-=(p.kind==='conf'?4:7)*dt;p.life-=dt;}
   parts=parts.filter(p=>p.life>0);
   if(state==='ready'){readyT-=dt;if(readyT<=0)state='race';}
+  toastT=Math.max(0,toastT-dt);
   if(state==='end'){endT-=dt;if(endT<=0)showResult();}
   const ty=me?me.y:0;camY+=(ty-camY)*Math.min(1,dt*5);
   updateRaceBar();
@@ -731,11 +739,18 @@ function drawOverlay(){
     const w=g.measureText(t).width+32;g.fillStyle='rgba(255,255,255,.92)';rr(g,VW/2-w/2,VH*.84-22,w,44,22);g.fill();
     g.fillStyle='#1d2a44';g.fillText(t,VW/2,VH*.84);
   }
+  if(state==='race'&&toastT>0&&toastC){
+    const t=`${order.indexOf(toastC)+1}등 도착!`;g.globalAlpha=Math.min(1,toastT*2);
+    g.font=`28px "Black Han Sans","Do Hyeon",sans-serif`;g.textAlign='center';g.textBaseline='middle';
+    const w=g.measureText(t).width+70;g.fillStyle='rgba(255,255,255,.92)';rr(g,VW/2-w/2,VH*.2-26,w,52,26);g.fill();
+    g.fillStyle=COLORS[toastC.col].c;g.beginPath();g.arc(VW/2-w/2+30,VH*.2,13,0,7);g.fill();
+    g.fillStyle='#1d2a44';g.fillText(t,VW/2+14,VH*.2+1);g.globalAlpha=1;
+  }
   if(state==='end'&&order[0]){
-    const win=order[0]===me,t=win?'1등!':'앗, 친구가 먼저!';
+    const pl=order.indexOf(me)+1,win=pl>0,t=win?pl+'등!':'앗, 아쉬워요!';
     g.font=`${win?72:44}px "Black Han Sans","Do Hyeon",sans-serif`;g.textAlign='center';g.textBaseline='middle';
     g.lineWidth=10;g.strokeStyle='#fff';g.strokeText(t,VW/2,VH*.3);
-    g.fillStyle=win?'#ffb000':COLORS[order[0].col].d;g.fillText(t,VW/2,VH*.3);
+    g.fillStyle=pl===1?'#ffb000':win?COLORS[me.col].d:'#5b6d8c';g.fillText(t,VW/2,VH*.3);
   }
 }
 
