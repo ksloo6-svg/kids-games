@@ -158,6 +158,12 @@ button:active{box-shadow:0 2px 0 #d93f62}
 .card p.step{font-size:17px;color:#8b6cf6}
 .namebox input{border-radius:999px}
 .coinhint{font-size:14px!important}
+button.linkbtn{background:none;box-shadow:none;color:var(--muted);font-size:16px;padding:4px 10px;margin-top:-4px}
+button.linkbtn:active{box-shadow:none}
+.codebox{width:100%;box-sizing:border-box;font-family:ui-monospace,Menlo,monospace;font-size:16px;color:var(--ink);padding:12px 14px;border:2px solid var(--shade);border-radius:16px;background:#f7f9fd;text-align:center;-webkit-user-select:text;user-select:text}
+textarea.codebox{resize:none;word-break:break-all;line-height:1.4}
+.codebox:focus{outline:none;border-color:var(--blue)}
+.card p.codemsg{min-height:22px;color:var(--ink);font-size:15px}
 canvas.podium{display:block;width:100%;height:220px}
 .itemlist{display:flex;flex-direction:column;gap:8px;width:100%}
 .itemcard{display:flex;align-items:center;gap:12px;text-align:left;width:100%;background:#f7f9fd;border-radius:18px;padding:8px 12px;box-sizing:border-box}
@@ -686,7 +692,8 @@ function menu(){
     grid+=`<button type="button" data-s="${s}" class="${done?'cleared':''}${s===picked?' sel':''}" ${open?'':'disabled'} aria-pressed="${s===picked}" aria-label="스테이지 ${s}">${s}</button>`;
   }
   grid+=`</div><p class="best">지금까지 열린 스테이지: ${unlocked}</p><button type="button" class="startbtn" id="goBtn">START</button>
-  <div class="mybar"><button type="button" class="ghost small" id="skinBtn">👕 내 캐릭터</button><button type="button" class="ghost small" id="shopBtn">🛍️ 상점</button></div>`;
+  <div class="mybar"><button type="button" class="ghost small" id="skinBtn">👕 내 캐릭터</button><button type="button" class="ghost small" id="shopBtn">🛍️ 상점</button></div>
+  <button type="button" class="linkbtn" id="saveBtn">💾 이어하기 코드</button>`;
   const hero=`<button type="button" class="helpbtn topbtn" id="helpBtn" aria-label="게임 방법">?</button>
   <button type="button" class="herobtn" id="heroBtn" aria-label="내 캐릭터"><span class="herospot"><canvas class="hero" id="myHero"></canvas></span><span class="heroname" style="background:${shade(myColor,-0.1)}">${esc(myName)}</span></button>`;
   card.innerHTML=coinPill()+MENU_HTML+hero+grid;
@@ -700,9 +707,59 @@ function menu(){
   document.getElementById('skinBtn').addEventListener('click',()=>myChar());
   document.getElementById('heroBtn').addEventListener('click',()=>myChar());
   document.getElementById('shopBtn').addEventListener('click',()=>shop(null,menu));
+  document.getElementById('saveBtn').addEventListener('click',saveScreen);
   document.getElementById('helpBtn').addEventListener('click',()=>{const il=document.getElementById('helpItems');il.innerHTML=`<p class="step">아이템</p>`+ITEMS.map(k=>k.from<=unlocked?`<div class="itemcard"><span class="itemicon" style="border-color:${k.ring}">${k.icon}</span><div><b>${k.name}</b><p>${k.desc}</p></div></div>`:`<div class="itemcard locked"><span class="itemicon">?</span><div><b>${k.from}스테이지에서 만나요</b></div></div>`).join('');help.hidden=false;});
   drawPreview(document.getElementById('myHero'),mySkin,myColor);
   overlay.hidden=false;
+}
+
+// save code: all progress packed into one short string, so it can move between Kakao, Safari, home-screen app or another phone
+function makeCode(){
+  const om=SKINS.reduce((m,k,i)=>owned.includes(k.id)?m|(1<<i):m,0),im=ITEMS.reduce((m,k,i)=>seenItems.includes(k.id)?m|(1<<i):m,0);
+  const body=[unlocked,coins,om,Math.max(0,SKINS.findIndex(k=>k.id===mySkin)),Math.max(0,RAINBOW.findIndex(k=>k.c===myColor)),im].map(n=>n.toString(36)).join('.')+'.'+myName;
+  return 'NG-'+btoa(unescape(encodeURIComponent(body))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')+'-'+codeSum(body);
+}
+function codeSum(t){let h=7;for(const ch of t)h=(h*31+ch.charCodeAt(0))%1296;return h.toString(36).padStart(2,'0');}
+function readCode(text){
+  const m=/NG-([A-Za-z0-9_-]+)-([0-9a-z]{2})/.exec(text||'');if(!m)return false;
+  let body;try{body=decodeURIComponent(escape(atob(m[1].replace(/-/g,'+').replace(/_/g,'/'))));}catch(e){return false;}
+  if(codeSum(body)!==m[2])return false;
+  const f=body.split('.');if(f.length<7)return false;
+  const [u,c,om,si,ci,im]=f.slice(0,6).map(x=>parseInt(x,36));const nm=f.slice(6).join('.');
+  if([u,c,om,si,ci,im].some(n=>!Number.isFinite(n)||n<0)||u<1)return false;
+  unlocked=u;coins=c;owned=SKINS.filter((k,i)=>om&(1<<i)).map(k=>k.id);if(!owned.includes('kid'))owned.unshift('kid');
+  mySkin=SKINS[si]&&owned.includes(SKINS[si].id)?SKINS[si].id:'kid';myColor=(RAINBOW[ci]||RAINBOW[0]).c;myName=nm.slice(0,6)||'나';
+  seenItems=ITEMS.filter((k,i)=>im&(1<<i)).map(k=>k.id);
+  saveWallet();try{localStorage.setItem('snowball-unlocked',unlocked);localStorage.setItem('snowball-items',JSON.stringify(seenItems));}catch(e){}
+  picked=0;page=-1;return true;
+}
+function saveScreen(){
+  state='ready';
+  const code=makeCode();
+  card.innerHTML=`<button type="button" class="backbtn topbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button>${coinPill()}<h1>이어하기 코드</h1>
+  <p>카톡, 사파리, 홈 화면, 다른 폰 어디서 열어도 이 코드를 넣으면 그대로 이어져요</p>
+  <p class="step">1. 지금 코드 복사하기</p>
+  <textarea class="codebox" id="codeOut" rows="2" readonly aria-label="내 이어하기 코드">${code}</textarea>
+  <button type="button" id="copyBtn">📋 복사하기</button>
+  <p class="step">2. 다른 곳에서 붙여 넣기</p>
+  <input class="codebox" id="codeIn" placeholder="여기에 코드를 붙여 넣어요" autocomplete="off" aria-label="불러올 코드">
+  <button type="button" class="ghost" id="loadBtn">불러오기</button>
+  <p class="codemsg" id="codeMsg" role="status"></p>`;
+  const msg=t=>{document.getElementById('codeMsg').textContent=t;};
+  const out=document.getElementById('codeOut');
+  document.getElementById('copyBtn').addEventListener('click',()=>{
+    const done=()=>msg('복사했어요! 카톡 "나와의 채팅"에 붙여 두면 언제든 꺼내 쓸 수 있어요');
+    const fallback=()=>{out.focus();out.select();out.setSelectionRange(0,out.value.length);try{document.execCommand('copy')?done():msg('코드를 길게 눌러 복사해 주세요');}catch(e){msg('코드를 길게 눌러 복사해 주세요');}};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(code).then(done,fallback);else fallback();
+  });
+  document.getElementById('loadBtn').addEventListener('click',()=>{
+    const v=document.getElementById('codeIn').value;
+    if(!/NG-/.test(v))return msg('코드를 먼저 붙여 넣어 주세요');
+    if(!confirm('지금 진행이 코드 속 진행으로 바뀌어요. 불러올까요?'))return;
+    if(readCode(v)){msg('불러왔어요! 🎉');setTimeout(menu,900);}else msg('코드가 맞지 않아요. 처음부터 끝까지 다시 복사해 주세요');
+  });
+  document.getElementById('backBtn').addEventListener('click',menu);
+  overlay.hidden=false;overlay.scrollTop=0;
 }
 
 const coinPill=()=>`<span class="topbtn coinpill" aria-label="코인 ${coins}개"><i class="coin"></i>${coins}</span>`;
