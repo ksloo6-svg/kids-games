@@ -115,7 +115,48 @@ button.helpbtn{position:absolute;top:-6px;right:-6px;width:44px;height:44px;padd
 button.herobtn{display:flex;flex-direction:column;align-items:center;gap:0;background:none;box-shadow:none;padding:0;color:var(--ink)}
 button.herobtn:active{transform:scale(.96);box-shadow:none}
 button.herobtn .heroname{margin-top:-6px}
-h1.padh{padding-top:40px}
+/* cute menu theme */
+.overlay{place-items:start center;padding:calc(env(safe-area-inset-top,0px) + 66px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);
+  background:radial-gradient(circle at 12% 18%,rgba(255,255,255,.95) 0 4px,transparent 5px),radial-gradient(circle at 86% 30%,rgba(255,255,255,.9) 0 3px,transparent 4px),radial-gradient(circle at 24% 72%,rgba(255,255,255,.9) 0 3px,transparent 4px),radial-gradient(circle at 78% 82%,rgba(255,255,255,.95) 0 5px,transparent 6px),linear-gradient(180deg,rgba(200,230,255,.93),rgba(255,236,245,.93))}
+.overlay>.card{background:rgba(255,255,255,.82);border-radius:30px;padding:20px 16px 22px;box-shadow:0 10px 30px rgba(90,120,170,.18);width:min(340px,100%);max-width:340px;box-sizing:border-box}
+.help{place-items:center}
+.card h1{font-size:34px}
+h1.logo{font-size:36px;letter-spacing:.02em;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+h1.logo span{display:inline-block;-webkit-text-stroke:0;text-shadow:0 3px 0 rgba(29,42,68,.12)}
+h1.logo span:nth-of-type(1){color:#ff6b8b;transform:rotate(-6deg)}
+h1.logo span:nth-of-type(2){color:#ffa53a;transform:translateY(-3px) rotate(4deg)}
+h1.logo span:nth-of-type(3){color:#3fbf6b;transform:rotate(-3deg)}
+h1.logo span:nth-of-type(4){color:#4b8bff;transform:translateY(-2px) rotate(5deg)}
+h1.logo em{font-size:17px;color:#fff;background:#8b6cf6;border-radius:999px;padding:5px 12px 4px;transform:rotate(-3deg);box-shadow:0 3px 0 #6a4fd0}
+h1.logo i{font-style:normal;font-size:22px}
+.topbtn{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 12px);height:44px;display:inline-flex;align-items:center;gap:6px;border-radius:22px;background:#ffffff;color:var(--ink);box-shadow:0 4px 0 rgba(150,175,210,.45);font-family:var(--display);font-size:20px}
+.coinpill{right:max(12px,env(safe-area-inset-right,0px),calc(50vw - 268px));padding:0 16px 0 10px}
+.coinpill .coin{width:22px;height:22px}
+button.helpbtn{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 12px);right:auto;left:max(12px,env(safe-area-inset-left,0px),calc(50vw - 268px));width:44px;height:44px;padding:0;justify-content:center;font-size:26px;border-radius:50%;box-shadow:0 4px 0 rgba(150,175,210,.45)}
+button.backbtn{box-shadow:0 4px 0 rgba(150,175,210,.45)}
+.herospot{width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,#ffffff 0 52%,rgba(255,255,255,0) 70%),radial-gradient(circle at 50% 60%,#fff3c4,#ffe0ec 70%);display:grid;place-items:center;position:relative}
+.herospot::before,.herospot::after{content:"✦";position:absolute;color:#ffc23d;font-size:20px}
+.herospot::before{top:18px;left:22px}.herospot::after{bottom:30px;right:16px;font-size:15px;color:#ff8fb1}
+canvas.hero{width:170px;height:170px}
+button.herobtn .heroname,.nametag{font-family:var(--display);font-size:20px;color:#fff;border-radius:999px;padding:5px 16px 4px;margin-top:-14px;box-shadow:0 3px 0 rgba(0,0,0,.15);position:relative}
+button{border-radius:999px}
+button{background:linear-gradient(180deg,#ff8a6b,#ff5d7d);box-shadow:0 5px 0 #d93f62}
+button:active{box-shadow:0 2px 0 #d93f62}
+.startbtn{box-shadow:0 6px 0 #d93f62}
+.stages{grid-template-columns:repeat(5,50px);gap:9px}
+.stages button{width:50px;height:50px;border-radius:18px;font-size:22px;background:#ffb547;box-shadow:0 4px 0 #e0902a;position:relative}
+.stages button:disabled{background:#eef2f8;color:#b4bfd0}
+.stages button.cleared{background:#7cc4ff;box-shadow:0 4px 0 #4f9be0}
+.stages button.cleared::after{content:"★";position:absolute;right:-4px;top:-7px;font-size:15px;color:#ffc23d;text-shadow:0 0 2px #fff,0 0 2px #fff}
+.stages button.sel{background:#ff5d7d;box-shadow:0 0 0 3px #ffffff,0 0 0 6px #ff5d7d}
+.pager{font-size:18px}
+.pager button{width:40px;height:40px;font-size:24px}
+.mybar{gap:10px}
+.mybar button{font-size:17px;padding:10px 18px;border:2px solid #e3eaf5}
+.skins .skin{border-radius:20px}
+.card p.step{font-size:17px;color:#8b6cf6}
+.namebox input{border-radius:999px}
+.coinhint{font-size:14px!important}
 .help{background:rgba(243,247,251,.96)}
 .namebox{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--muted)}
 .namebox input{font-family:var(--display);font-size:22px;color:var(--ink);width:150px;padding:8px 12px;border:2px solid var(--shade);border-radius:12px;background:#ffffff;text-align:center;-webkit-user-select:text;user-select:text}
@@ -144,7 +185,7 @@ button.sw.sel{box-shadow:0 0 0 3px #ffffff,0 0 0 6px var(--ink)}
   </div>
   <div class="overlay" id="overlay">
     <div class="card" id="card">
-      <h1>눈굴리기<br><em>대작전</em></h1>
+      <h1 class="logo"><i>❄️</i><span>눈</span><span>굴</span><span>리</span><span>기</span><em>대작전</em></h1>
     </div>
   </div>
   <div class="overlay help" id="help" hidden>
@@ -547,10 +588,10 @@ function menu(){
     grid+=`<button type="button" data-s="${s}" class="${done?'cleared':''}${s===picked?' sel':''}" ${open?'':'disabled'} aria-pressed="${s===picked}" aria-label="스테이지 ${s}">${s}</button>`;
   }
   grid+=`</div><p class="best">지금까지 열린 스테이지: ${unlocked}</p><button type="button" class="startbtn" id="goBtn">START</button>
-  <div class="mybar"><span class="coins"><i class="coin"></i>${coins}</span><button type="button" class="ghost small" id="skinBtn">내 캐릭터</button><button type="button" class="ghost small" id="shopBtn">상점</button></div>`;
-  const hero=`<button type="button" class="helpbtn" id="helpBtn" aria-label="게임 방법">?</button>
-  <button type="button" class="herobtn" id="heroBtn" aria-label="내 캐릭터"><canvas class="hero" id="myHero"></canvas><span class="heroname">${esc(myName)}</span></button>`;
-  card.innerHTML=MENU_HTML+hero+grid;
+  <div class="mybar"><button type="button" class="ghost small" id="skinBtn">👕 내 캐릭터</button><button type="button" class="ghost small" id="shopBtn">🛍️ 상점</button></div>`;
+  const hero=`<button type="button" class="helpbtn topbtn" id="helpBtn" aria-label="게임 방법">?</button>
+  <button type="button" class="herobtn" id="heroBtn" aria-label="내 캐릭터"><span class="herospot"><canvas class="hero" id="myHero"></canvas></span><span class="heroname" style="background:${shade(myColor,-0.1)}">${esc(myName)}</span></button>`;
+  card.innerHTML=coinPill()+MENU_HTML+hero+grid;
   card.querySelectorAll('.stages button').forEach(b=>b.addEventListener('click',()=>{
     picked=+b.dataset.s;
     card.querySelectorAll('.stages button').forEach(o=>{const on=+o.dataset.s===picked;o.classList.toggle('sel',on);o.setAttribute('aria-pressed',on);});
@@ -566,13 +607,15 @@ function menu(){
   overlay.hidden=false;
 }
 
+const coinPill=()=>`<span class="topbtn coinpill" aria-label="코인 ${coins}개"><i class="coin"></i>${coins}</span>`;
+
 // my character: name, colour and owned characters; every tap applies straight away
 function myChar(msg){
   state='ready';
   const mine=SKINS.filter(k=>owned.includes(k.id)),more=SKINS.length-mine.length;
-  card.innerHTML=`<button type="button" class="backbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button><h1 class="padh">내 캐릭터</h1>
+  card.innerHTML=`<button type="button" class="backbtn topbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button>${coinPill()}<h1>내 캐릭터</h1>
   ${msg?`<p class="toast">${msg}</p>`:''}
-  <canvas class="hero" id="heroCv"></canvas>
+  <span class="herospot"><canvas class="hero" id="heroCv"></canvas></span>
   <label class="namebox">이름 <input id="nameIn" type="text" maxlength="6" value="${esc(myName)}" autocomplete="off" enterkeyhint="done"></label>
   <p class="step">색깔</p>
   <div class="swatches">${RAINBOW.map(k=>`<button type="button" class="sw${k.c===myColor?' sel':''}" data-c="${k.c}" style="background:${k.c}" aria-label="${k.n}" aria-pressed="${k.c===myColor}"></button>`).join('')}</div>
@@ -602,12 +645,12 @@ function shop(view,back){
   if(!sk)body=`<p>캐릭터를 모두 모았어요!</p>`;
   else{
     const need=sk.price-coins;
-    body=`<canvas class="hero" id="heroCv"></canvas>
+    body=`<span class="herospot"><canvas class="hero" id="heroCv"></canvas></span>
     <div class="heroname">${sk.name}</div>
     ${need<=0?`<button type="button" id="buyBtn"><i class="coin"></i> ${sk.price}코인으로 사기</button>`:`<button type="button" class="ghost" disabled>코인이 ${need}개 더 필요해요</button>`}
     <div class="skins">${items.map(k=>`<button type="button" class="skin${k.id===sk.id?' sel':''}${k.price>coins?' locked':''}" data-id="${k.id}"><canvas></canvas><span>${k.name}</span><span class="price"><i class="coin"></i>${k.price}</span></button>`).join('')}</div>`;
   }
-  card.innerHTML=`<button type="button" class="backbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button><h1 class="padh">상점</h1><span class="coins big"><i class="coin"></i>${coins}<small>스테이지를 통과하고 퀴즈를 맞히면 코인이 생겨요</small></span>${body}
+  card.innerHTML=`<button type="button" class="backbtn topbtn" id="backBtn" aria-label="돌아가기">‹ 뒤로</button>${coinPill()}<h1>상점</h1><p class="coinhint">스테이지를 통과하고 퀴즈를 맞히면 코인이 생겨요</p>${body}
 `;
   if(sk){
     drawPreview(document.getElementById('heroCv'),sk.id,myColor);
@@ -801,10 +844,10 @@ function drawRider(g,id,team,hx,hy,s,step){
 function drawPreview(c,id,team){
   const dpr=Math.min(window.devicePixelRatio||1,2),w=c.clientWidth||64,h=c.clientHeight||64;
   c.width=w*dpr;c.height=h*dpr;const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
-  const bx=w/2,by=h*0.76,br=h*0.21;
+  const bx=w/2,by=h*0.79,br=h*0.2;
   const gr=g.createRadialGradient(bx-br*0.4,by-br*0.45,br*0.05,bx,by,br*1.05);gr.addColorStop(0,'#fff');gr.addColorStop(.6,'#eef4fa');gr.addColorStop(1,'#bfd0e3');
   g.fillStyle=gr;g.beginPath();g.arc(bx,by,br,0,Math.PI*2);g.fill();
-  drawRider(g,id,team,bx,by-br*0.45,h*0.15,0.4);
+  drawRider(g,id,team,bx,by-br*0.45,h*0.185,0.4);
 }
 
 function drawBall(rc){
