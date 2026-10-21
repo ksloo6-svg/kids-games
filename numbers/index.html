@@ -50,7 +50,9 @@ button.round{width:44px;height:44px;padding:0;border-radius:50%;background:#fff;
 .layer>*{pointer-events:auto}
 .logo{font-family:"Black Han Sans",var(--display);font-weight:400;font-size:48px;line-height:1;margin:4px 0 0;color:var(--me);text-shadow:0 5px 0 #3537b0,0 9px 14px rgba(40,50,140,.25);letter-spacing:.02em;pointer-events:none}
 .logo b{font-weight:400;color:var(--big);text-shadow:0 5px 0 #b32424,0 9px 14px rgba(140,40,40,.25)}
-.lvl{font-family:var(--display);font-size:22px;color:var(--ink);background:rgba(255,255,255,.8);border-radius:999px;padding:4px 16px;margin-top:12px;pointer-events:none}
+.lvlsel{display:flex;align-items:center;gap:10px;margin-top:12px}
+.lvlsel button:disabled{opacity:.35}
+.lvl{font-family:var(--display);font-size:24px;color:var(--ink);background:rgba(255,255,255,.85);border-radius:999px;padding:6px 18px;min-width:96px;text-align:center}
 .grow{flex:1;pointer-events:none}
 .hint{font-family:var(--display);font-size:20px;color:var(--ink);background:rgba(255,255,255,.85);border-radius:999px;padding:8px 18px;margin-bottom:12px;display:flex;gap:8px;align-items:center;pointer-events:none}
 .hint .hand{display:inline-block;animation:swing 1.2s ease-in-out infinite}
@@ -97,7 +99,7 @@ button.round{width:44px;height:44px;padding:0;border-radius:50%;background:#fff;
 
   <div class="layer" id="menu">
     <h1 class="logo">숫자 <b>대장</b></h1>
-    <div class="lvl" id="menuLvl">레벨 1</div>
+    <div class="lvlsel"><button class="round" id="lvPrev" aria-label="이전 레벨">◀</button><div class="lvl" id="menuLvl">레벨 1</div><button class="round" id="lvNext" aria-label="다음 레벨">▶</button></div>
     <div class="grow"></div>
     <div class="hint"><span class="hand">👆</span> 좌우로 밀어서 움직여요</div>
     <button class="startbtn" id="startBtn">시작!</button>
@@ -143,9 +145,9 @@ button.round{width:44px;height:44px;padding:0;border-radius:50%;background:#fff;
 <script>
 // ---------- save ----------
 const K='numbers-';
-let level=1,coins=0,upS=0,upB=0;
-try{level=Math.max(1,parseInt(localStorage.getItem(K+'level')||'1',10)||1);coins=parseInt(localStorage.getItem(K+'coins')||'0',10)||0;upS=parseInt(localStorage.getItem(K+'start')||'0',10)||0;upB=parseInt(localStorage.getItem(K+'bonus')||'0',10)||0;}catch(e){}
-function save(){try{localStorage.setItem(K+'level',level);localStorage.setItem(K+'coins',coins);localStorage.setItem(K+'start',upS);localStorage.setItem(K+'bonus',upB);}catch(e){}}
+let level=1,best=1,coins=0,upS=0,upB=0;
+try{best=Math.max(1,parseInt(localStorage.getItem(K+'level')||'1',10)||1);level=Math.min(best,Math.max(1,parseInt(localStorage.getItem(K+'cur')||String(best),10)||best));coins=parseInt(localStorage.getItem(K+'coins')||'0',10)||0;upS=parseInt(localStorage.getItem(K+'start')||'0',10)||0;upB=parseInt(localStorage.getItem(K+'bonus')||'0',10)||0;}catch(e){}
+function save(){try{localStorage.setItem(K+'level',best);localStorage.setItem(K+'cur',level);localStorage.setItem(K+'coins',coins);localStorage.setItem(K+'start',upS);localStorage.setItem(K+'bonus',upB);}catch(e){}}
 const MAX_S=99,MAX_B=30;
 const startNum=()=>1+upS;
 const costS=()=>20+upS*15;
@@ -158,7 +160,7 @@ function genLevel(L){
   const r=rng(L*7919+13),ri=(a,b)=>a+Math.floor(r()*(b-a+1));
   const ents=[],segs=[],ramps=[];
   let z=14,E=1;
-  const redP=Math.min(.35+L*.04,.75);
+  const redP=Math.min(.2+L*.025,.5);
   const rows=Math.min(10+L*2,34),target=20+15*Math.pow(L,1.5),f=Math.pow(target,1/(rows*1.4));
   function row(z,lanes,noRed,keep){
     if(!keep)lanes=lanes.slice().sort(()=>r()-.5);
@@ -166,33 +168,34 @@ function genLevel(L){
     ents.push({k:'num',x:lanes[0],z,v:g});E+=g;
     for(let i=1;i<lanes.length;i++){
       const p=r();
-      if(!noRed&&p<redP)ents.push({k:'num',x:lanes[i],z,v:Math.ceil(E*(1.2+r()*1.3))+1});
+      if(!noRed&&(p<redP||keep&&p<.6))ents.push({k:'num',x:lanes[i],z,v:Math.ceil(E*(1.2+r()*1.3))+1});
+      else if(keep)continue; // on split bridges the other side never tempts you away from the safe side
       else if(p<redP+.3)ents.push({k:'num',x:lanes[i],z,v:Math.max(1,Math.round(E*(.1+r()*.3)))});
     }
   }
   let nextObs=3;
   for(let i=0;i<rows;i++){
-    if(L>=2&&i===nextObs&&i<rows-2){
-      const opts=['saw'];if(L>=3)opts.push('b2','b1');if(L>=4)opts.push('gap');
+    if(L>=3&&i===nextObs&&i<rows-2){
+      const opts=['saw'];if(L>=5)opts.push('b2','b1');if(L>=7)opts.push('gap');
       const t=opts[Math.floor(r()*opts.length)];
-      if(t==='saw'){ents.push({k:'saw',x:0,z:z+3,amp:2.3,ph:r()*6,sp:1.3+Math.min(L*.06,1.2)});z+=9;}
+      if(t==='saw'){ents.push({k:'saw',x:0,z:z+3,amp:2.3,ph:r()*6,sp:.6+Math.min(L*.03,.6)});z+=9;}
       else if(t==='b2'){segs.push({z0:z+6,z1:z+24,t:'b2'});const side=r()<.5?[-2.1,2.1]:[2.1,-2.1];row(z+11,side,false,true);row(z+18,side,false,true);z+=33;}
       else if(t==='b1'){segs.push({z0:z+5,z1:z+21,t:'b1'});row(z+10,[0],true);row(z+16,[0],true);z+=29;}
-      else{ramps.push({z0:z+2,z1:z+6});segs.push({z0:z+6,z1:z+14,t:'gap'});z+=26;}
-      nextObs=i+2+ri(0,2);
+      else{ramps.push({z0:z+2,z1:z+6});segs.push({z0:z+6,z1:z+11,t:'gap'});z+=22;}
+      nextObs=i+3+ri(0,2);
     }
     row(z,[-2.2,0,2.2]);z+=9;
   }
   const finish=z+4,walls=[];
-  for(let i=0;i<MULTS.length;i++)walls.push({z:finish+10+i*9,req:Math.max(i+2,Math.round(E*.35*Math.pow(1.5,i))),m:MULTS[i],broken:false});
+  for(let i=0;i<MULTS.length;i++)walls.push({z:finish+10+i*9,req:Math.max(i+2,Math.round(E*.2*Math.pow(1.45,i))),m:MULTS[i],broken:false});
   const end=walls[walls.length-1].z+10;
   return{ents,segs,ramps,finish,walls,end,E};
 }
 function solidAt(z){
   if(z>lvl.end||z<-20)return[];
   for(const s of lvl.segs)if(z>=s.z0&&z<s.z1){
-    if(s.t==='b2')return[[-3,-1.2],[1.2,3]];
-    if(s.t==='b1')return[[-1.1,1.1]];
+    if(s.t==='b2')return[[-3,-.9],[.9,3]];
+    if(s.t==='b1')return[[-1.5,1.5]];
     return[];
   }
   return[[-3,3]];
@@ -202,7 +205,7 @@ const onSolid=(x,z)=>solidAt(z).some(([a,b])=>x>=a-.15&&x<=b+.15);
 // ---------- state ----------
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),wrap=document.getElementById('wrap');
 let W=0,H=0,F=0,HY=0;
-const CAMH=5.5,CAMD=7,SPEED=15,DRAW=90;
+const CAMH=5.5,CAMD=7,SPEED=6.5,DRAW=90,GRAV=14;
 let lvl,state='menu',px=0,pz=0,py=0,vy=0,air=false,onRamp=null,n=1,inv=0,camX=0,camZ=-CAMD,mult=1,t=0,shake=0,endT=0,deadWhy='';
 let parts=[],floats=[];
 function resize(){const d=Math.min(2,window.devicePixelRatio||1);W=wrap.clientWidth;H=wrap.clientHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);F=Math.min(W*1.02,H*.6);HY=H*.34;}
@@ -226,6 +229,7 @@ const $=id=>document.getElementById(id);
 function ui(){
   $('coinTxt').textContent=coins;
   $('menuLvl').textContent='레벨 '+level;
+  $('lvPrev').disabled=level<=1;$('lvNext').disabled=level>=best;
   $('upStartV').textContent=startNum();
   $('upStartC').textContent=upS>=MAX_S?'최고':costS();
   $('upBonusV').textContent='+'+upB*10+'%';
@@ -238,6 +242,9 @@ function startGame(){if(state!=='menu')return;state='play';showMenu(false);$('lv
 $('startBtn').addEventListener('click',e=>{e.stopPropagation();startGame();});
 $('upStart').addEventListener('click',()=>{if(upS>=MAX_S||coins<costS())return;coins-=costS();upS++;save();ui();if(state==='menu')n=startNum();});
 $('upBonus').addEventListener('click',()=>{if(upB>=MAX_B||coins<costB())return;coins-=costB();upB++;save();ui();});
+function pickLevel(d){const v=Math.max(1,Math.min(best,level+d));if(v===level)return;level=v;save();toMenu();}
+$('lvPrev').addEventListener('click',()=>pickLevel(-1));
+$('lvNext').addEventListener('click',()=>pickLevel(1));
 $('nextBtn').addEventListener('click',()=>{$('winBox').hidden=true;toMenu();});
 $('retryBtn').addEventListener('click',()=>{$('loseBox').hidden=true;toMenu();});
 $('helpBtn').addEventListener('click',()=>$('helpBox').hidden=false);
@@ -253,27 +260,27 @@ function floatTxt(txt,c){floats.push({txt,c,life:1});}
 function lose(why){if(state!=='play')return;state='dead';deadWhy=why;burst(px,py+.8,pz,'#5b5ef5',40,7);endT=0;shake=.4;}
 function win(){state='won';endT=0;
   const base=20+level*4;const got=Math.round(base*mult*(1+upB*.1));
-  coins+=got;level++;save();
+  coins+=got;level++;if(level>best)best=level;save();
   $('winMult').textContent='×'+mult;$('winCoins').textContent=got;$('winNum').textContent='내 숫자 '+n;
   for(let i=0;i<80;i++)parts.push({x:px+(Math.random()-.5)*6,y:3+Math.random()*3,z:pz+2+Math.random()*4,vx:(Math.random()-.5)*4,vy:Math.random()*3,vz:(Math.random()-.5)*2,life:1.5+Math.random(),c:['#ff4b4b','#ffc23d','#2fae57','#2fa8ee','#5b5ef5','#ff7bc0'][i%6],s:.2});
 }
 function update(dt){
   t+=dt;
   if(state==='play'){
-    if(keys.ArrowLeft)px=Math.max(-2.9,px-8*dt);
-    if(keys.ArrowRight)px=Math.min(2.9,px+8*dt);
+    if(keys.ArrowLeft)px=Math.max(-2.9,px-5*dt);
+    if(keys.ArrowRight)px=Math.min(2.9,px+5*dt);
     pz+=SPEED*dt;
     if(inv>0)inv-=dt;
     // ramp, jump and falling
     const rp=lvl.ramps.find(r=>pz>=r.z0&&pz<r.z1&&Math.abs(px)<=1.7);
     if(!air){
       if(rp){onRamp=rp;py=(pz-rp.z0)/(rp.z1-rp.z0)*1.4;}
-      else if(onRamp){air=true;vy=pz>=onRamp.z1-.6?8:0;onRamp=null;}
+      else if(onRamp){air=true;vy=pz>=onRamp.z1-.6?6:0;onRamp=null;}
       else if(!onSolid(px,pz)){air=true;vy=0;}
       else py=0;
     }
     if(air){
-      vy-=24*dt;py+=vy*dt;
+      vy-=GRAV*dt;py+=vy*dt;
       if(py<=0&&py>-.5&&onSolid(px,pz)){py=0;vy=0;air=false;}
       if(py<-6){deadWhy='fall';state='dead';endT=0;}
     }
@@ -282,13 +289,14 @@ function update(dt){
       if(e.dead||Math.abs(e.z-pz)>.7)continue;
       if(e.k==='num'){
         if(py>1.6||py<-.6)continue;
-        if(Math.abs(e.x-px)<(numW(e.v)+numW(n))*.4){
+        if(Math.abs(e.x-px)<(numW(e.v)+numW(n))*.45){
+          if(e.v>n&&Math.abs(e.x-px)>(numW(e.v)+numW(n))*.3)continue;
           if(e.v<=n){e.dead=true;n+=e.v;burst(e.x,.8,e.z,'#2fa8ee',14,5);floatTxt('+'+e.v,'#2fa8ee');}
           else{e.hit=true;lose('big');}
         }
       }else if(e.k==='saw'&&inv<=0&&py<1.4){
         const sx=Math.sin(t*e.sp+e.ph)*e.amp;
-        if(Math.abs(sx-px)<.7+numW(n)*.4){const k=Math.ceil(n*.3);n=Math.max(1,n-k);inv=1;shake=.3;burst(px,.8,pz,'#ffc23d',16,6);floatTxt('-'+k,'#ff4b4b');}
+        if(Math.abs(sx-px)<.7+numW(n)*.4){const k=Math.ceil(n*.2);n=Math.max(1,n-k);inv=1;shake=.3;burst(px,.8,pz,'#ffc23d',16,6);floatTxt('-'+k,'#ff4b4b');}
       }
     }
     // walls after the finish line
@@ -301,7 +309,7 @@ function update(dt){
     if(state==='play'&&pz>=lvl.end-4){pz=lvl.end-4;win();}
   }else if(state==='dead'){
     endT+=dt;
-    if(deadWhy==='fall'){vy-=24*dt;py+=vy*dt;}
+    if(deadWhy==='fall'){vy-=GRAV*dt;py+=vy*dt;}
     if(endT>1&&$('loseBox').hidden){
       $('loseTitle').textContent='앗, 아쉬워요!';
       $('loseMsg').textContent=deadWhy==='fall'?'길 밖으로 떨어졌어요.':'나보다 큰 숫자에 부딪혔어요.';
