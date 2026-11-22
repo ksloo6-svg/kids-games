@@ -127,7 +127,7 @@ button.big:active{box-shadow:0 2px 0 #b83030}
   </div>
 
   <div class="layer" id="menu">
-    <div class="corner l"><button class="round" id="helpBtn" aria-label="게임 방법">?</button><button class="round" id="soundBtn" aria-label="소리">🔊</button></div>
+    <div class="corner l"><button class="round" id="helpBtn" aria-label="게임 방법">?</button><button class="round" id="soundBtn" aria-label="소리">🔊</button><button class="round" id="reloadBtn" aria-label="새로고침" style="font-family:var(--emoji)">🔄</button></div>
     <div class="corner r"><div class="pill">🪙 <span id="menuCoins">0</span></div><div class="pill">🔍 <span id="menuHints">0</span></div></div>
     <h1 class="logo"><span>숨</span><span>은</span> <span>고</span><span>양</span><span>이</span><br><span>찾</span><span>기</span></h1>
     <div class="sub">숨어 있는 야옹이를 모두 찾아요!</div>
@@ -578,6 +578,8 @@ $('lvNext').onclick=()=>{curLevel++;refreshMenu();};
 $('startBtn').onclick=()=>{tone(600,900,.1,'triangle');startLevel(curLevel);};
 $('helpBtn').onclick=()=>{$('helpBox').hidden=false;};
 $('helpOk').onclick=()=>{$('helpBox').hidden=true;};
+// home-screen apps have no browser reload, so this fetches the newest version (query string skips the cached page)
+$('reloadBtn').onclick=()=>{location.replace(location.pathname+'?r='+Date.now());};
 $('soundBtn').onclick=()=>{soundOn=!soundOn;sv('sound',soundOn);refreshMenu();};
 function heroSVG(){return pa('M-46 -2 h92 v-46 h-92z','#6c9fe4')+`<g transform="translate(0 -44) scale(1.25)">${catSVG('peek','#f39a3d')}</g>`+rc(-52,-52,104,14,'#4f84cc',4)+pa('M-12 -24 l12 -10 l12 10 l-12 10z','#f6c445');}
 $('hero').innerHTML=`<g class="heroc">${heroSVG()}</g>`;
