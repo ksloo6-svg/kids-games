@@ -150,8 +150,8 @@ try{best=Math.max(1,parseInt(localStorage.getItem(K+'level')||'1',10)||1);level=
 function save(){try{localStorage.setItem(K+'level',best);localStorage.setItem(K+'cur',level);localStorage.setItem(K+'coins',coins);localStorage.setItem(K+'start',upS);localStorage.setItem(K+'bonus',upB);}catch(e){}}
 const MAX_S=99,MAX_B=30;
 const startNum=()=>1+upS;
-const costS=()=>20+upS*15;
-const costB=()=>50+upB*40;
+const costS=()=>40+upS*30;
+const costB=()=>80+upB*60;
 
 // ---------- level generation (same level = same course) ----------
 function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -161,7 +161,7 @@ function genLevel(L){
   const ents=[],segs=[],ramps=[];
   // E: my number if I only take the safe pick each row; S: if I always take the biggest number I can eat
   let z=14,E=1,S=1;
-  const redP=Math.min(.2+L*.025,.5);
+  const redP=Math.min(.3+L*.03,.6);
   const rows=Math.min(10+L*2,34),target=20+15*Math.pow(L,1.5),f=Math.pow(target,1/(rows*1.4));
   function row(z,lanes,noRed,keep){
     if(!keep)lanes=lanes.slice().sort(()=>r()-.5);
@@ -174,7 +174,7 @@ function genLevel(L){
       if(keep){if(!noRed&&p<.6)v=Math.ceil(Math.max(E,S)*(1.3+r()*.8))+2;} // split bridges: the other side is only ever a real obstacle
       else if(!noRed&&p<redP){
         // most big numbers can be popped if I collected well; a few stay too big to dodge
-        if(S>E&&r()<.75){v=Math.min(S,Math.round(E*2.2)+2,E+1+Math.round((S-E-1)*(.4+r()*.6)));best=Math.max(best,v);}
+        if(S>E&&r()<.6){v=Math.min(S,Math.round(E*2.2)+2,E+1+Math.round((S-E-1)*(.4+r()*.6)));best=Math.max(best,v);}
         else v=Math.ceil(Math.max(E,S)*(1.3+r()*.8))+2;
       }
       else if(p<redP+.35){v=Math.max(1,Math.round(E*(.15+r()*.3)));best=Math.max(best,v);}
@@ -184,19 +184,19 @@ function genLevel(L){
   }
   let nextObs=3;
   for(let i=0;i<rows;i++){
-    if(L>=3&&i===nextObs&&i<rows-2){
-      const opts=['saw'];if(L>=5)opts.push('b2','b1');if(L>=7)opts.push('gap');
+    if(L>=2&&i===nextObs&&i<rows-2){
+      const opts=['saw'];if(L>=3)opts.push('b2','b1');if(L>=5)opts.push('gap');
       const t=opts[Math.floor(r()*opts.length)];
-      if(t==='saw'){ents.push({k:'saw',x:0,z:z+3,amp:2.3,ph:r()*6,sp:.6+Math.min(L*.03,.6)});z+=9;}
+      if(t==='saw'){ents.push({k:'saw',x:0,z:z+3,amp:2.3,ph:r()*6,sp:.9+Math.min(L*.04,1)});z+=9;}
       else if(t==='b2'){segs.push({z0:z+6,z1:z+24,t:'b2'});const side=r()<.5?[-2.1,2.1]:[2.1,-2.1];row(z+11,side,false,true);row(z+18,side,false,true);z+=33;}
       else if(t==='b1'){segs.push({z0:z+5,z1:z+21,t:'b1'});row(z+10,[0],true);row(z+16,[0],true);z+=29;}
       else{ramps.push({z0:z+2,z1:z+6});segs.push({z0:z+6,z1:z+11,t:'gap'});z+=22;}
-      nextObs=i+3+ri(0,2);
+      nextObs=i+2+ri(0,2);
     }
     row(z,[-2.2,0,2.2]);z+=9;
   }
   const finish=z+4,walls=[];
-  for(let i=0;i<MULTS.length;i++)walls.push({z:finish+10+i*9,req:Math.max(i+2,Math.round(E*.2*Math.pow(1.45,i))),m:MULTS[i],broken:false});
+  for(let i=0;i<MULTS.length;i++)walls.push({z:finish+10+i*9,req:Math.max(i+2,Math.round(E*.28*Math.pow(1.45,i))),m:MULTS[i],broken:false});
   const end=walls[walls.length-1].z+10;
   return{ents,segs,ramps,finish,walls,end,E,S};
 }
@@ -300,13 +300,13 @@ function update(dt){
       if(e.k==='num'){
         if(py>1.6||py<-.6)continue;
         if(Math.abs(e.x-px)<(numW(e.v)+numW(n))*.45){
-          if(e.v>n&&Math.abs(e.x-px)>(numW(e.v)+numW(n))*.3)continue;
+          if(e.v>n&&Math.abs(e.x-px)>(numW(e.v)+numW(n))*.36)continue;
           if(e.v<=n){e.dead=true;const pop=e.v>=n*.5&&e.v>3;n+=e.v;burst(e.x,.8,e.z,pop?'#ffc23d':'#2fa8ee',pop?40:14,pop?9:5);if(pop){shake=.25;floatTxt('펑! +'+e.v,'#ff8a00');}else floatTxt('+'+e.v,'#2fa8ee');}
           else{e.hit=true;lose('big');}
         }
       }else if(e.k==='saw'&&inv<=0&&py<1.4){
         const sx=Math.sin(t*e.sp+e.ph)*e.amp;
-        if(Math.abs(sx-px)<.7+numW(n)*.4){const k=Math.ceil(n*.2);n=Math.max(1,n-k);inv=1;shake=.3;burst(px,.8,pz,'#ffc23d',16,6);floatTxt('-'+k,'#ff4b4b');}
+        if(Math.abs(sx-px)<.7+numW(n)*.4){const k=Math.ceil(n*.3);n=Math.max(1,n-k);inv=1;shake=.3;burst(px,.8,pz,'#ffc23d',16,6);floatTxt('-'+k,'#ff4b4b');}
       }
     }
     // walls after the finish line
