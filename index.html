@@ -35,11 +35,14 @@ h1{margin:8px 0 24px;text-align:center;font-size:clamp(32px,9vw,48px);font-weigh
 .game:active{transform:translateY(4px) scale(.97);box-shadow:0 2px 0 rgba(43,43,69,.12)}
 .game img{width:100%;max-width:140px;aspect-ratio:1;border-radius:24%}
 .game span{font-size:22px;text-align:center}
+.reload{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:14px;width:52px;height:52px;border:0;border-radius:50%;background:#fff;box-shadow:var(--shadow);font-size:26px;line-height:52px;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.reload:active{transform:translateY(3px)}
 .soon{opacity:.45;pointer-events:none}
 .soon .ph{width:100%;max-width:140px;aspect-ratio:1;border-radius:24%;background:#eee6d6;display:grid;place-items:center;font-size:56px}
 </style>
 </head>
 <body>
+<button class="reload" id="reload" aria-label="새로고침">🔄</button>
 <h1>이든 게임 모음</h1>
 <main class="shelf">
   <a class="game" href="snowball/">
@@ -87,5 +90,10 @@ h1{margin:8px 0 24px;text-align:center;font-size:clamp(32px,9vw,48px);font-weigh
     <span>곧 나와요</span>
   </div>
 </main>
+<script>
+// Home-screen bookmarks have no browser reload: this button and every game link add a fresh query string so the newest version loads instead of a cached one.
+document.getElementById('reload').onclick=()=>location.replace(location.pathname+'?r='+Date.now());
+document.querySelectorAll('a.game').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();location.href=a.getAttribute('href')+'?r='+Date.now();}));
+</script>
 </body>
 </html>
