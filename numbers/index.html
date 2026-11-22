@@ -214,7 +214,7 @@ const onSolid=(x,z)=>solidAt(z).some(([a,b])=>x>=a-.15&&x<=b+.15);
 // ---------- state ----------
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),wrap=document.getElementById('wrap');
 let W=0,H=0,F=0,HY=0;
-const CAMH=5.5,CAMD=7,SPEED=8.5,FAST=18,DRAW=90,GRAV=14;
+const CAMH=5.5,CAMD=7,SPEED=6.5,FAST=16,DRAW=90,GRAV=14;
 let lvl,spd=SPEED,state='menu',px=0,pz=0,py=0,vy=0,air=false,onRamp=null,n=1,inv=0,camX=0,camZ=-CAMD,mult=1,t=0,shake=0,endT=0,deadWhy='';
 let parts=[],floats=[];
 function resize(){const d=Math.min(2,window.devicePixelRatio||1);W=wrap.clientWidth;H=wrap.clientHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);F=Math.min(W*1.02,H*.6);HY=H*.34;}
